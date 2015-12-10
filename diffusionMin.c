@@ -314,6 +314,106 @@ void FindMTP(void)
 	return;
 }
 
+/* On query processing, split the query and get the target features. */
+void QueryProcessing(void)
+{
+	int seednum;	// number of influential nodes
+	char *target_labels;	// total target labels
+	char *label;	// single label
+	char *saveptr;	// used in strtok_r() in order to maintain context between successive calls that parse the same string.
+	int targetFeature[totalfeatures];
+	int index;
+
+	printf("Input k : \n");
+//	scanf("%d", &seednum);
+	printf("Input specific targets using attributes with blank to separate : \n");
+	printf("(for example : basketball curry ...)\n");
+//	scanf("%s", labels);
+
+	seednum = 12;
+	target_labels = "basketball curry Taipei";
+	printf("k is %d\nlabels are %s\n", seednum, target_labels);
+
+	char *labels = strdup(target_labels);		// maybe target_labels return a pointer to a read-only char array, strdup is one of the solution.
+
+	label = strtok_r(labels, " ", &saveptr);
+	while(label != NULL){
+		printf("%s ", label);
+		index = CompareFeatures(label);
+		if(index == -1){		// If the label doesn't feat any other features.
+			printf("No such features on our users.\n");
+			exit(1);
+		}
+		targetFeature[index] = 1;
+//		printf("index is %d\n", index);
+		label = strtok_r(NULL, " ", &saveptr);
+	}
+
+/*	Above code could rewrite as follows : 
+	while((label = strtok_r(labels, " ", &labels))){
+		printf("%s ", label);
+		...
+	}
+*/
+	return;
+}
+
+int CompareFeatures(char *label)
+{
+	int i;
+
+	if(!FeaturesName){
+		StoreFeaturesName();
+	}	
+
+	for(i = 0 ; i < totalfeatures ; i++){
+		if(strcmp(label, FeaturesName[i]) == 0)
+			return i;
+	}
+
+	return -1;	
+}
+
+void StoreFeaturesName(void)
+{
+	FILE *fp = fopen("synthetic.featnames", "r");
+	char *line = NULL;
+	char *token;
+	size_t len = 0;
+	ssize_t read;
+	int count = 0;
+
+	FeaturesName = malloc(totalfeatures * sizeof(char *));
+
+	while((read = getline(&line, &len, fp)) != -1){
+		token = strtok(line, " ");
+		if(token != NULL)
+			token = strtok(NULL, "\n");
+
+		FeaturesName[count] = malloc((strlen(token)+1) * sizeof(char));
+		strcpy(FeaturesName[count], token);
+//		FeaturesName[count] = token;
+		printf("%d %s", strlen(token), FeaturesName[count]);
+		count++;
+	}
+
+/*
+	printf("print again\n");
+	int i;
+	for(i = 0 ; i < totalfeatures ; i++)
+		printf("%s test ", FeaturesName[i]);
+*/
+	printf("\n");
+
+	return;
+}
+
+void RecalProbability(void)
+{
+
+	return;
+}
+
 /* Show useful message to confirm it. */
 void printGraph(void)
 {
@@ -358,8 +458,10 @@ int main(int argc, char **argv)
 	
 	ReadGraph();
 	NormalizeEdgeWeight();
-	DiffusionTime();
-	FindMTP();
+	QueryProcessing();
+	RecalProbability();
+//	DiffusionTime();
+//	FindMTP();
 //	printf("\n");
 //	printGraph();
 

@@ -31,7 +31,11 @@ void DiffusionTime(void);					// Compute the diffusion time with 1/probability *
 void FindMTP(void);							// Find minimum time path using dijkstra's algorithm
 void printGraph(void);
 
+void QueryProcessing(void);
+int CompareFeatures(char *);
+
 int totalvertices;
 int totalfeatures;
+char **FeaturesName;
 
 #endif
