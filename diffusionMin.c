@@ -1,30 +1,10 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<stdbool.h>
+#include<float.h>
+#include "diffusionMin.h"
 
-struct Vertex {
-	int ID;
-	int *label;
-	struct Neighbor *prev;
-	struct Neighbor *next;
-};
-
-struct Neighbor {
-	int ID;
-	double weight;
-	double probability;
-	double time;
-	struct Neighbor *next;
-};
-
-struct Vertex **Users;
-void InitializeVertices(int);
-void StoreRelationship(char *);
-void SyncOutNeighbor(int ,int, double);
-int totalvertices;
-int totalfeatures;
-
-void readGraph()
+void ReadGraph(void)
 {
 	FILE *fp = fopen("synthetic.edge", "r");
 	FILE *fp2 = fopen("synthetic.feat", "r");
@@ -132,7 +112,7 @@ void StoreRelationship(char *relation)
 }
 
 /* Normalize edge weight with w(u,v)/d(v) as the propagation probability. */
-void NormalizeEdgeWeight()
+void NormalizeEdgeWeight(void)
 {
 	int i;
 	double total = 0.0;
@@ -154,7 +134,7 @@ void NormalizeEdgeWeight()
 		if(total != 0.0){
 			current = Users[i]->prev;		// u->v , only consider v's in-neighbor.
 			current->probability = current->weight/total;
-			SyncOutNeighbor(current->ID, i, current->probability);
+			SyncOutNeighbor(current->ID, i, current->probability);		// synchronize out neightbor
 			printf("weight is %f\n", current->probability);
 			while(current->next != NULL){
 				current = current->next;
@@ -169,7 +149,9 @@ void NormalizeEdgeWeight()
 
 	return;
 }
-	
+
+/* When normalize the edge weight with vertex's in-neighbor, 
+the in-neighbor's out-neighbor should be synchronize too. */
 void SyncOutNeighbor(int u, int v, double probability)
 {
 	struct Neighbor *current = Users[u]->next;
@@ -183,6 +165,22 @@ void SyncOutNeighbor(int u, int v, double probability)
 	}
 }
 
+/* When calculate the diffusion time with vertex's out-neighbor, 
+the out-neighbor's in-neighbor should be synchronize too. */
+void SyncInNeighbor(int u, int v, double time)
+{
+	struct Neighbor *current = Users[v]->prev;
+	while(current != NULL || current->next != NULL){
+		if(current->ID == u){
+			current->time = time;
+			break;
+		}
+		else
+			current = current->next;
+	}
+}
+
+/* store every vertex's feature in their struct */
 void StoreFeatures(char *features)
 {
 	int i, value;
@@ -208,19 +206,116 @@ void StoreFeatures(char *features)
 	return;
 }
 
-void DiffusionTime()
+/* compute the diffusion time with 1/probability * 1/weight. */
+void DiffusionTime(void)
 {
 	int i;
 	struct Neighbor *current = NULL;
 
-//	for(i = 0 ; i < totalvertices ; i++){
-//		if(Users[i])
-//	}
+	for(i = 0 ; i < totalvertices ; i++){
+		if(Users[i] != NULL && Users[i]->next != NULL){
+			current = Users[i]->next;
+			current->time = (1/current->probability) * (1/current->weight);
+			SyncInNeighbor(i, current->ID, current->time);		// synchronize in neightbor
+			while(current->next != NULL){
+				current = current->next;
+				current->time = (1/current->probability) * (1/current->weight);
+				SyncInNeighbor(i, current->ID, current->time);	
+			}
+		}
+	}
 
 	return;
 }
 
-void printGraph()
+/* Pick the minimum distance from the set of vertices not yet processed. */
+int minDistance(double dist[], bool sptSet[])
+{
+	double min = DBL_MAX;
+	int min_index, i;
+
+	for(i = 0 ; i < totalvertices ; i++){
+		if(sptSet[i] == false && dist[i]<min){
+			min = dist[i];
+			min_index = i;
+		}
+	}
+
+	return min_index;
+}
+
+void printPath(int dest, int prev[])
+{
+	if(prev[dest] != -1)
+		printPath(prev[dest], prev);
+	printf("%d ", dest);
+}
+
+/* find minimum time path using dijkstra's algorithm. */
+void FindMTP(void)
+{
+	double dist[totalvertices];
+	bool sptSet[totalvertices];		// shortest path tree Set.
+	int prev[totalvertices];
+	int i, src, count;
+	int min_index;
+	struct Neighbor *current = NULL;
+
+	srand(time(NULL));
+	src = rand()%totalvertices;
+	printf("src is %d\n", src);
+
+	for(i = 0 ; i < totalvertices ; i++){
+		dist[i] = DBL_MAX;
+		prev[i] = -1;
+		sptSet[i] = false;
+	}
+
+	dist[src] = 0;		// Distance of source vertex from itself is 0
+
+	for(count = 0 ; count < totalvertices-1 ; count++){
+
+		/* Pick the minimum distance from the set of vertices not yet processed. */
+		min_index = minDistance(dist, sptSet);
+		printf("min index is %d\n", min_index);
+		sptSet[min_index] = true;
+
+		/* Update dist value of the adjacent vertices of the picked vertex. */
+		if(Users[min_index] != NULL && Users[min_index]->next != NULL){
+			current = Users[min_index]->next;
+			if(!sptSet[current->ID] && current->time && dist[min_index]!=DBL_MAX && (dist[min_index]+current->time < dist[current->ID]) ){
+				dist[current->ID] = dist[min_index]+current->time;
+				prev[current->ID] = min_index;
+			}	
+			while(current->next != NULL){
+				current = current->next;
+				if(!sptSet[current->ID] && current->time && dist[min_index]!=DBL_MAX && (dist[min_index]+current->time < dist[current->ID]) ){
+					dist[current->ID] = dist[min_index]+current->time;
+					prev[current->ID] = min_index;
+				}	
+
+			}
+		}
+
+	}
+
+	/* verify the algorithm is correct!? */
+	printf("Vertex		Distance from source\n");
+	for(i = 0 ; i < totalvertices ; i++)
+		printf("%d\t\t%f\n", i, dist[i]);
+
+	printf("Get the path\n");
+	for(i = 0 ; i < totalvertices ; i++){
+		printf("node %d : ", i);
+		printPath(i, prev);
+		printf("\n");
+	}
+
+	return;
+}
+
+/* Show useful message to confirm it. */
+void printGraph(void)
 {
 	int i;
 	struct Neighbor *current = NULL;
@@ -232,10 +327,12 @@ void printGraph()
 				current = Users[i]->next;
 				printf("\tnode %d\n", current->ID);
 				printf("\tprobability %f\n", current->probability);
+				printf("\tdiffusion time %f\n", current->time);
 				while(current->next != NULL){
 					current = current->next;
 					printf("\tnode %d\n", current->ID);
 					printf("\tprobability %f\n", current->probability);
+					printf("\tdiffusion time %f\n", current->time);
 				}
 			}
 			printf("prev: \n");
@@ -243,10 +340,12 @@ void printGraph()
 				current = Users[i]->prev;
 				printf("\tnode %d\n", current->ID);
 				printf("\tprobability %f\n", current->probability);
+				printf("\tdiffusion time %f\n", current->time);
 				while(current->next != NULL){
 					current = current->next;
 					printf("\tnode %d\n", current->ID);
 					printf("\tprobability %f\n", current->probability);
+					printf("\tdiffusion time %f\n", current->time);
 				}
 			}
 		}
@@ -257,11 +356,12 @@ void printGraph()
 int main(int argc, char **argv)
 {
 	
-	readGraph();
+	ReadGraph();
 	NormalizeEdgeWeight();
-//	DiffusionTime();
-	printf("\n");
-	printGraph();
+	DiffusionTime();
+	FindMTP();
+//	printf("\n");
+//	printGraph();
 
 	return 0;
 }
