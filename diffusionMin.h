@@ -2,10 +2,12 @@
 #define __DIFFUSIONLIB_H__
 
 #include<stdio.h>
+#include<stdbool.h>
 
 struct Vertex {
 	int ID;
 	int *label;
+	bool update;
 	struct Neighbor *prev;
 	struct Neighbor *next;
 };
@@ -33,9 +35,13 @@ void printGraph(void);
 
 void QueryProcessing(void);
 int CompareFeatures(char *);
+void ReNormalizeEdgeProbability(void);
+void SyncInNeighborWithPro(int, int, double);
 
-int totalvertices;
-int totalfeatures;
-char **FeaturesName;
+int totalvertices;							// number of total users
+int totalfeatures;							// number of total features
+int seedNumber;								// number of influential nodes
+int *targetFeature;							// target feature with 0 and 1 to represent
+char **FeaturesName;						
 
 #endif

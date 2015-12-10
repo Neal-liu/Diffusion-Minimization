@@ -64,6 +64,7 @@ void StoreRelationship(char *relation)
 	if(!Users[node1]){
 		Users[node1] = malloc(sizeof(struct Vertex));
 		Users[node1]->ID = node1;
+		Users[node1]->update = false;
 		Users[node1]->prev = NULL;
 		Users[node1]->next = NULL;
 //		printf("create node %d\n", node1);
@@ -71,6 +72,7 @@ void StoreRelationship(char *relation)
 	if(!Users[node2]){
 		Users[node2] = malloc(sizeof(struct Vertex));
 		Users[node2]->ID = node2;
+		Users[node2]->update = false;
 		Users[node2]->prev = NULL;
 		Users[node2]->next = NULL;
 //		printf("create node %d\n", node2);
@@ -317,22 +319,24 @@ void FindMTP(void)
 /* On query processing, split the query and get the target features. */
 void QueryProcessing(void)
 {
-	int seednum;	// number of influential nodes
 	char *target_labels;	// total target labels
 	char *label;	// single label
 	char *saveptr;	// used in strtok_r() in order to maintain context between successive calls that parse the same string.
-	int targetFeature[totalfeatures];
-	int index;
+	int index, i;
 
+	targetFeature = malloc(totalfeatures * sizeof(int));
+	
+	for(i = 0 ; i < totalfeatures ; i++)		// Initialize the array 
+		targetFeature[i] = 0;
 	printf("Input k : \n");
-//	scanf("%d", &seednum);
+//	scanf("%d", &seedNumber);
 	printf("Input specific targets using attributes with blank to separate : \n");
 	printf("(for example : basketball curry ...)\n");
 //	scanf("%s", labels);
 
-	seednum = 12;
+	seedNumber = 12;
 	target_labels = "basketball curry Taipei";
-	printf("k is %d\nlabels are %s\n", seednum, target_labels);
+	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
 	char *labels = strdup(target_labels);		// maybe target_labels return a pointer to a read-only char array, strdup is one of the solution.
 
@@ -355,9 +359,15 @@ void QueryProcessing(void)
 		...
 	}
 */
+	printf("\n");
+	for(i = 0 ; i < totalfeatures ; i++)
+		printf("%d ", targetFeature[i]);
+
+	printf("\n\n");
 	return;
 }
 
+/* Compare the features are matched or not, and return the "file.featnames"'s index. */
 int CompareFeatures(char *label)
 {
 	int i;
@@ -374,6 +384,7 @@ int CompareFeatures(char *label)
 	return -1;	
 }
 
+/* Initialize the FeaturesName array , and store the value in it. */
 void StoreFeaturesName(void)
 {
 	FILE *fp = fopen("synthetic.featnames", "r");
@@ -393,23 +404,101 @@ void StoreFeaturesName(void)
 		FeaturesName[count] = malloc((strlen(token)+1) * sizeof(char));
 		strcpy(FeaturesName[count], token);
 //		FeaturesName[count] = token;
-		printf("%d %s", strlen(token), FeaturesName[count]);
+//		printf("%d %s", strlen(token), FeaturesName[count]);
 		count++;
 	}
-
-/*
-	printf("print again\n");
-	int i;
-	for(i = 0 ; i < totalfeatures ; i++)
-		printf("%s test ", FeaturesName[i]);
-*/
-	printf("\n");
 
 	return;
 }
 
+/* When the query is comming, the diffsion probability should be recalculated
+because of users' spontaneity. */
 void RecalProbability(void)
 {
+	int i, j;
+	int intersections = 0;
+	int unions = 0;
+	struct Neighbor *current = NULL;
+
+	for(i = 0 ; i < totalvertices ; i++){
+		if(Users[i] != NULL){
+			intersections = 0;
+			unions = 0;
+			for(j = 0 ; j < totalfeatures ; j++){		// calculate the intersections and unions of each user's feature
+//				printf("%d ", Users[i]->label[j]);	
+				if(Users[i]->label[j] == targetFeature[j] && targetFeature[j] == 1)
+					intersections++;
+				if(Users[i]->label[j] == 1 || targetFeature[j] == 1)
+					unions++;
+			}
+			printf("\n");
+			printf("i:%d u:%d -> %f\n", intersections, unions, (double)intersections/unions);
+
+			current = Users[i]->next;
+			while(current != NULL){
+				printf("Previous : user %d to %d: %f\n", i, current->ID, current->probability);
+				/* 1*propagation probability + self sontaniously * propagation probability */
+				current->probability = 1*current->probability + ((double)intersections/unions)*current->probability;
+				printf("\tuser %d to %d: %f\n", i, current->ID, current->probability);
+				SyncInNeighborWithPro(i, current->ID, current->probability);
+				current = current->next;
+			}
+		}
+	}
+
+	return;
+}
+
+/* When calculate the propagation probability with vertex's out-neighbor, 
+the out-neighbor's in-neighbor should be synchronize too. */
+void SyncInNeighborWithPro(int u, int v, double probability)
+{
+	struct Neighbor *current = Users[v]->prev;
+	while(current != NULL){
+		if(current->ID == u){
+			current->probability = probability;
+			break;
+		}
+		else
+			current = current->next;
+	}
+}
+
+/* Re-Normalize edge probability with p(u,v)/total(p(v)). */
+void ReNormalizeEdgeProbability(void)
+{
+	int i;
+	double total = 0.0;
+	struct Neighbor *current = NULL;
+
+	for(i = 0 ; i < totalvertices ; i++){
+		if(Users[i] != NULL && Users[i]->prev != NULL){
+			current = Users[i]->prev;
+			total += current->probability;
+
+			while(current->next != NULL){
+				current = current->next;
+				total += current->probability;
+			}
+		}
+
+		printf("user %d : total probability is %f\n", i, total);
+
+		if(total != 0.0){
+			current = Users[i]->prev;		// u->v , only consider v's in-neighbor.
+			current->probability = current->probability/total;
+			SyncOutNeighbor(current->ID, i, current->probability);		// synchronize out neightbor
+			printf("\tuser %d to %d -> probability is %f\n", current->ID, i, current->probability);
+			while(current->next != NULL){
+				current = current->next;
+				current->probability = current->probability/total;
+				SyncOutNeighbor(current->ID, i, current->probability);
+				printf("\tuser %d to %d -> probability is %f\n", current->ID, i, current->probability);
+			}
+		}
+
+		total = 0.0;
+	}
 
 	return;
 }
@@ -460,6 +549,7 @@ int main(int argc, char **argv)
 	NormalizeEdgeWeight();
 	QueryProcessing();
 	RecalProbability();
+	ReNormalizeEdgeProbability();
 //	DiffusionTime();
 //	FindMTP();
 //	printf("\n");
