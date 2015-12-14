@@ -4,10 +4,13 @@
 #include<stdio.h>
 #include<stdbool.h>
 
+#define MAX(X, Y) ( X > Y ? X : Y)
+#define MIN(X, Y) ( X < Y ? X : Y)
+
 struct Vertex {
 	int ID;
 	int *label;
-	bool update;
+//	bool update;
 	struct Neighbor *prev;
 	struct Neighbor *next;
 };
@@ -30,11 +33,12 @@ void StoreFeatures(char *);					// Store every vertex's feature in their struct
 void SyncOutNeighbor(int ,int, double);
 void SyncInNeighbor(int ,int, double);
 void DiffusionTime(void);					// Compute the diffusion time with 1/probability * 1/weight
-void FindMTP(void);							// Find minimum time path using dijkstra's algorithm
+double *FindMTP(int, double *);				// Find minimum time path using dijkstra's algorithm
 void printGraph(void);
 
 void QueryProcessing(void);
 int CompareFeatures(char *);
+void StoreFeaturesName(void);
 void ReNormalizeEdgeProbability(void);
 void SyncInNeighborWithPro(int, int, double);
 
@@ -42,6 +46,9 @@ int totalvertices;							// number of total users
 int totalfeatures;							// number of total features
 int seedNumber;								// number of influential nodes
 int *targetFeature;							// target feature with 0 and 1 to represent
-char **FeaturesName;						
+char **featuresName;						// store total features' name by scanning "file.featname"
+int *targetUsers;							// store target users whose features have include all query features
+
 
 #endif
+

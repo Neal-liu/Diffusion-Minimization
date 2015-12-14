@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<float.h>
+#include<string.h>
 #include "diffusionMin.h"
 
 void ReadGraph(void)
@@ -14,7 +15,7 @@ void ReadGraph(void)
 	bool firstline = true;
 
 	while((read = getline(&line, &len, fp)) != -1){
-		printf("%s", line);
+//		printf("%s", line);
 		if(firstline){
 			firstline = false;
 			InitializeVertices(atoi(line));
@@ -27,7 +28,7 @@ void ReadGraph(void)
 
 	firstline = true;
 	while((read = getline(&line, &len, fp2)) != -1){
-		printf("%s", line);
+//		printf("%s", line);
 		if(firstline){
 			firstline = false;
 			totalfeatures = atoi(line);
@@ -47,13 +48,13 @@ void ReadGraph(void)
 /* Create an array of struct Vertex pointer, which points to each user. */
 void InitializeVertices(int number)
 {
-	printf("%d\n", number);
+//	printf("%d\n", number);
 	totalvertices = number;
 	Users = malloc(number * sizeof(struct Vertex *));
 	return;
 }
 
-/* include file.edge to store the users' relationship. */
+/* Include file.edge to store the users' relationship. */
 void StoreRelationship(char *relation)
 {
 	int node1 = atoi(relation);
@@ -64,7 +65,7 @@ void StoreRelationship(char *relation)
 	if(!Users[node1]){
 		Users[node1] = malloc(sizeof(struct Vertex));
 		Users[node1]->ID = node1;
-		Users[node1]->update = false;
+//		Users[node1]->update = false;
 		Users[node1]->prev = NULL;
 		Users[node1]->next = NULL;
 //		printf("create node %d\n", node1);
@@ -72,7 +73,7 @@ void StoreRelationship(char *relation)
 	if(!Users[node2]){
 		Users[node2] = malloc(sizeof(struct Vertex));
 		Users[node2]->ID = node2;
-		Users[node2]->update = false;
+//		Users[node2]->update = false;
 		Users[node2]->prev = NULL;
 		Users[node2]->next = NULL;
 //		printf("create node %d\n", node2);
@@ -120,6 +121,7 @@ void NormalizeEdgeWeight(void)
 	double total = 0.0;
 	struct Neighbor *current = NULL;
 
+	printf("Normalize Edge Weight : \n");
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL && Users[i]->prev != NULL){
 			current = Users[i]->prev;
@@ -137,12 +139,12 @@ void NormalizeEdgeWeight(void)
 			current = Users[i]->prev;		// u->v , only consider v's in-neighbor.
 			current->probability = current->weight/total;
 			SyncOutNeighbor(current->ID, i, current->probability);		// synchronize out neightbor
-			printf("weight is %f\n", current->probability);
+			printf("node %d to node %d probability is %f\n", current->ID, i, current->probability);
 			while(current->next != NULL){
 				current = current->next;
 				current->probability = current->weight/total;
 				SyncOutNeighbor(current->ID, i, current->probability);
-				printf("weight is %f\n", current->probability);
+				printf("node %d to node %d probability is %f\n", current->ID, i, current->probability);
 			}
 		}
 
@@ -182,7 +184,7 @@ void SyncInNeighbor(int u, int v, double time)
 	}
 }
 
-/* store every vertex's feature in their struct */
+/* Store every vertex's feature in their struct. */
 void StoreFeatures(char *features)
 {
 	int i, value;
@@ -200,15 +202,17 @@ void StoreFeatures(char *features)
 		Users[node]->label[i-1] = atoi(features + i*2);
 	}
 
+/*  // Print each user's feature.
 	printf("Users %d feature : \n\t", node);
 	for(i = 0 ; i < totalfeatures ; i++){
 		printf("%d ", Users[node]->label[i]);
 	}
 	printf("\n");
+*/
 	return;
 }
 
-/* compute the diffusion time with 1/probability * 1/weight. */
+/* Compute the diffusion time with 1/probability * 1/weight. */
 void DiffusionTime(void)
 {
 	int i;
@@ -253,18 +257,19 @@ void printPath(int dest, int prev[])
 	printf("%d ", dest);
 }
 
-/* find minimum time path using dijkstra's algorithm. */
-void FindMTP(void)
+/* Find minimum time path using dijkstra's algorithm. */
+double *FindMTP(int root, double *dist)
 {
-	double dist[totalvertices];
+//	double dist[totalvertices];		// distance from each node to target.
 	bool sptSet[totalvertices];		// shortest path tree Set.
 	int prev[totalvertices];
 	int i, src, count;
 	int min_index;
 	struct Neighbor *current = NULL;
 
-	srand(time(NULL));
-	src = rand()%totalvertices;
+//	srand(time(NULL));
+//	src = rand()%totalvertices;
+	src = root;
 	printf("src is %d\n", src);
 
 	for(i = 0 ; i < totalvertices ; i++){
@@ -283,8 +288,8 @@ void FindMTP(void)
 		sptSet[min_index] = true;
 
 		/* Update dist value of the adjacent vertices of the picked vertex. */
-		if(Users[min_index] != NULL && Users[min_index]->next != NULL){
-			current = Users[min_index]->next;
+		if(Users[min_index] != NULL && Users[min_index]->prev != NULL){
+			current = Users[min_index]->prev;
 			if(!sptSet[current->ID] && current->time && dist[min_index]!=DBL_MAX && (dist[min_index]+current->time < dist[current->ID]) ){
 				dist[current->ID] = dist[min_index]+current->time;
 				prev[current->ID] = min_index;
@@ -302,7 +307,7 @@ void FindMTP(void)
 	}
 
 	/* verify the algorithm is correct!? */
-	printf("Vertex		Distance from source\n");
+	printf("Vertex		Distance(time) from source\n");
 	for(i = 0 ; i < totalvertices ; i++)
 		printf("%d\t\t%f\n", i, dist[i]);
 
@@ -313,7 +318,7 @@ void FindMTP(void)
 		printf("\n");
 	}
 
-	return;
+	return dist;
 }
 
 /* On query processing, split the query and get the target features. */
@@ -334,7 +339,7 @@ void QueryProcessing(void)
 	printf("(for example : basketball curry ...)\n");
 //	scanf("%s", labels);
 
-	seedNumber = 12;
+	seedNumber = 4;
 	target_labels = "basketball curry Taipei";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
@@ -372,12 +377,12 @@ int CompareFeatures(char *label)
 {
 	int i;
 
-	if(!FeaturesName){
+	if(!featuresName){
 		StoreFeaturesName();
 	}	
 
 	for(i = 0 ; i < totalfeatures ; i++){
-		if(strcmp(label, FeaturesName[i]) == 0)
+		if(strcmp(label, featuresName[i]) == 0)
 			return i;
 	}
 
@@ -394,17 +399,17 @@ void StoreFeaturesName(void)
 	ssize_t read;
 	int count = 0;
 
-	FeaturesName = malloc(totalfeatures * sizeof(char *));
+	featuresName = malloc(totalfeatures * sizeof(char *));
 
 	while((read = getline(&line, &len, fp)) != -1){
 		token = strtok(line, " ");
 		if(token != NULL)
 			token = strtok(NULL, "\n");
 
-		FeaturesName[count] = malloc((strlen(token)+1) * sizeof(char));
-		strcpy(FeaturesName[count], token);
-//		FeaturesName[count] = token;
-//		printf("%d %s", strlen(token), FeaturesName[count]);
+		featuresName[count] = malloc((strlen(token)+1) * sizeof(char));
+		strcpy(featuresName[count], token);
+//		featuresName[count] = token;
+//		printf("%d %s", strlen(token), featuresName[count]);
 		count++;
 	}
 
@@ -412,18 +417,31 @@ void StoreFeaturesName(void)
 }
 
 /* When the query is comming, the diffsion probability should be recalculated
-because of users' spontaneity. */
-void RecalProbability(void)
+because of users' spontaneity. And record the target node at the same time.*/
+int RecalProbability(void)
 {
-	int i, j;
+	int i, j, targetNum = 0, targetCount = 0;
 	int intersections = 0;
 	int unions = 0;
 	struct Neighbor *current = NULL;
+	bool voluntary = false;
+
+	printf("Re calculate edge probability : \n");
+
+	if(!targetUsers)
+		targetUsers = malloc(totalvertices * sizeof(int));
+	
+
+	for(i = 0 ; i < totalfeatures ; i++){				// calculate the total target features' number
+		if(targetFeature[i] == 1)
+			targetNum++;
+	}
 
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL){
 			intersections = 0;
 			unions = 0;
+			targetUsers[i] = -1;
 			for(j = 0 ; j < totalfeatures ; j++){		// calculate the intersections and unions of each user's feature
 //				printf("%d ", Users[i]->label[j]);	
 				if(Users[i]->label[j] == targetFeature[j] && targetFeature[j] == 1)
@@ -431,11 +449,25 @@ void RecalProbability(void)
 				if(Users[i]->label[j] == 1 || targetFeature[j] == 1)
 					unions++;
 			}
+
+			/* if user's intersections is included whole query features, the user will be target. */
+			if(intersections == targetNum){
+//				targetUsers[targetCount] = malloc(sizeof(int));
+				targetUsers[targetCount++] = i;
+				printf("\nuser %d is target !!\n", i);
+			}
+
 			printf("\n");
-			printf("i:%d u:%d -> %f\n", intersections, unions, (double)intersections/unions);
+			printf("intersections:%d unions:%d -> %f\n", intersections, unions, (double)intersections/unions);
+			if((double)intersections/unions > 0)
+				voluntary = true;
+			else{
+				voluntary = false;
+				printf("No need to update !\n");
+			}
 
 			current = Users[i]->next;
-			while(current != NULL){
+			while(current != NULL && voluntary){
 				printf("Previous : user %d to %d: %f\n", i, current->ID, current->probability);
 				/* 1*propagation probability + self sontaniously * propagation probability */
 				current->probability = 1*current->probability + ((double)intersections/unions)*current->probability;
@@ -446,7 +478,7 @@ void RecalProbability(void)
 		}
 	}
 
-	return;
+	return targetCount;
 }
 
 /* When calculate the propagation probability with vertex's out-neighbor, 
@@ -471,6 +503,7 @@ void ReNormalizeEdgeProbability(void)
 	double total = 0.0;
 	struct Neighbor *current = NULL;
 
+	printf("Re Normalize edge probability : \n");
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL && Users[i]->prev != NULL){
 			current = Users[i]->prev;
@@ -499,6 +532,139 @@ void ReNormalizeEdgeProbability(void)
 
 		total = 0.0;
 	}
+
+	return;
+}
+
+/* Sort the distToTarget array using bubble sort. "end" is true means get 
+the last one index, it also means get the maximum value index, vice versa. */
+int BubbleSort(double *distToTarget, bool end)
+{
+	int i, j, itmp;
+	double tmp;
+	int index[totalvertices];
+
+	for(i = 0 ; i < totalvertices ; i++)
+		index[i] = i;
+
+	for(i = 0 ; i < totalvertices-1 ; i++){
+		for(j = 0 ; j < totalvertices-i-1 ; j++){
+			if(distToTarget[j] > distToTarget[j+1]){
+				tmp = distToTarget[j];		// value exchange
+				distToTarget[j] = distToTarget[j+1];
+				distToTarget[j+1] = tmp;
+
+				itmp = index[j];			// index exchange
+				index[j] = index[j+1];
+				index[j+1] = itmp;
+			}
+		}
+	}
+
+	for(i = 0 ; i < totalvertices ; i++)
+		printf("index %d is %f\n", index[i], distToTarget[i]);
+
+	if(end)
+		return index[totalvertices-1];
+	else
+		return index[0];
+}
+
+/* "node" is include seedset or not */
+bool isInclude(int node ,int *seedSet){
+	int i;
+	for(i = 0 ; i < seedNumber ; i++){
+		if(seedSet[i] == node)
+			return true;
+	}
+	return false;
+}
+
+double *InitializeEachReduce(double *eachReduce)
+{
+	int i;
+	for(i = 0 ; i < totalvertices ; i++)
+		eachReduce[i] = 0;
+	return eachReduce;
+}
+
+/* Baseline algorithm for finding top k users causing the minimum diffusion time.
+Use Greedy to get the maximum marginal gain. */
+void Baseline(int targetCount)
+{
+	int i, j, top1;
+	int topk = seedNumber;
+	int seedSet[seedNumber];
+	bool best = true;
+
+	/* create a 2D array distToTargets[eachTarget][eachNode] */
+	double **distToTargets = malloc(targetCount * sizeof(double *));
+	double *firstRound = malloc(totalvertices * sizeof(double));		// store max time of each node to targets
+	double *targets = malloc(targetCount * sizeof(double));				// the minimum time to arrive each target
+
+	/* store each vertex to target causes the diffusion time less */
+	double *eachReduce = malloc(totalvertices * sizeof(double));		
+
+	/*	initialize targets array, distToTargets array, firstRound array, eachReduce array. */
+	for(i = 0 ; i < targetCount ; i++){
+		targets[i] = DBL_MAX;
+
+		if(!distToTargets[i])
+			distToTargets[i] = malloc(totalvertices * sizeof(double));
+		for(j = 0 ; j < totalvertices ; j++)
+			distToTargets[i][j] = -1;
+	}
+	for(i = 0 ; i < totalvertices ; i++){
+		firstRound[i] = -1;
+		eachReduce[i] = 0;
+	}
+
+	/* Get the first seed. Then get the next seed by recording the marginal gain of each node. */
+	int count = 0;
+	while(topk > 0){
+		InitializeEachReduce(eachReduce);
+		best = true;		// check the diffusion time has improved or not
+
+		for(i = 0 ; i < targetCount ; i++){
+			distToTargets[i] = FindMTP(targetUsers[i], distToTargets[i]);	// calculate the time of each node to the target
+			for(j = 0 ; j < totalvertices ; j++){
+				if(count == 0){
+					firstRound[j] = MAX(firstRound[j], distToTargets[i][j]);
+					printf("node %d to node %d : %f\n", j, targetUsers[i], distToTargets[i][j]);
+					best = false;
+				}
+				/* if node has contribution of diffusion time, then store it into "eachReduce" to get the most one. */
+				else if(!isInclude(j, seedSet) && distToTargets[i][j]<targets[i]) {
+					eachReduce[j] += targets[i]-distToTargets[i][j];		
+					best = false;
+				}
+			}
+		}
+
+		if(best){									// if there is no node has contribution , then quit the algorithm.
+			printf("No more seeds !!\nIt's the shortest diffusion time !!\n");
+			break;
+		}
+		if(count == 0)
+			top1 = BubbleSort(firstRound, false);
+		else
+			top1 = BubbleSort(eachReduce, true);
+			
+		seedSet[count++] = top1;					// store top1 to seed set
+		printf("top %d is %d\n", count, top1);
+		for(i = 0 ; i < targetCount ; i++){
+			if(distToTargets[i][top1] < targets[i])
+				targets[i] = distToTargets[i][top1];
+			printf("top %d to node %d is : %f\n\n", count, targetUsers[i], targets[i]);
+		}
+
+		topk--;
+	}
+
+	printf("seed set are : \n");
+	for(i = 0 ; i < count ; i++)
+		printf("%d ", seedSet[i]);
+	printf("\n");
 
 	return;
 }
@@ -544,16 +710,19 @@ void printGraph(void)
 
 int main(int argc, char **argv)
 {
-	
+	int targetCount;
+
 	ReadGraph();
 	NormalizeEdgeWeight();
 	QueryProcessing();
-	RecalProbability();
+	targetCount = RecalProbability();
 	ReNormalizeEdgeProbability();
-//	DiffusionTime();
+	DiffusionTime();
 //	FindMTP();
-//	printf("\n");
-//	printGraph();
+	printf("\nPrint Graph Information : \n");
+	printGraph();
+
+	Baseline(targetCount);
 
 	return 0;
 }
