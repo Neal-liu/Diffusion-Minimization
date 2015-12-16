@@ -3,5 +3,5 @@ CFLAGS = -Wall -Werror -std=gnu99 -O3 -g
 #PNGLIBS := $(shell pkg-config libpng --libs)
 
 all:
-	gcc -o diffusion diffusionMin.c 
+	gcc -o diffusion diffusionMin.c LDTree.c
 	./diffusion 

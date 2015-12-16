@@ -1,8 +1,8 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<stdbool.h>
-#include<float.h>
-#include<string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <float.h>
+#include <string.h>
 #include "diffusionMin.h"
 
 void ReadGraph(void)
@@ -240,6 +240,7 @@ int minDistance(double dist[], bool sptSet[])
 	double min = DBL_MAX;
 	int min_index, i;
 
+	min_index = -1;
 	for(i = 0 ; i < totalvertices ; i++){
 		if(sptSet[i] == false && dist[i]<min){
 			min = dist[i];
@@ -408,7 +409,6 @@ void StoreFeaturesName(void)
 
 		featuresName[count] = malloc((strlen(token)+1) * sizeof(char));
 		strcpy(featuresName[count], token);
-//		featuresName[count] = token;
 //		printf("%d %s", strlen(token), featuresName[count]);
 		count++;
 	}
@@ -452,7 +452,6 @@ int RecalProbability(void)
 
 			/* if user's intersections is included whole query features, the user will be target. */
 			if(intersections == targetNum){
-//				targetUsers[targetCount] = malloc(sizeof(int));
 				targetUsers[targetCount++] = i;
 				printf("\nuser %d is target !!\n", i);
 			}
@@ -623,7 +622,7 @@ void Baseline(int targetCount)
 	int count = 0;
 	while(topk > 0){
 		InitializeEachReduce(eachReduce);
-		best = true;		// check the diffusion time has improved or not
+		best = true;														// check the diffusion time has improved or not
 
 		for(i = 0 ; i < targetCount ; i++){
 			distToTargets[i] = FindMTP(targetUsers[i], distToTargets[i]);	// calculate the time of each node to the target
@@ -641,7 +640,7 @@ void Baseline(int targetCount)
 			}
 		}
 
-		if(best){									// if there is no node has contribution , then quit the algorithm.
+		if(best){															// if there is no node has contribution , then quit the algorithm.
 			printf("No more seeds !!\nIt's the shortest diffusion time !!\n");
 			break;
 		}
@@ -650,7 +649,7 @@ void Baseline(int targetCount)
 		else
 			top1 = BubbleSort(eachReduce, true);
 			
-		seedSet[count++] = top1;					// store top1 to seed set
+		seedSet[count++] = top1;											// store top1 to seed set
 		printf("top %d is %d\n", count, top1);
 		for(i = 0 ; i < targetCount ; i++){
 			if(distToTargets[i][top1] < targets[i])
@@ -668,6 +667,7 @@ void Baseline(int targetCount)
 
 	return;
 }
+
 
 /* Show useful message to confirm it. */
 void printGraph(void)
@@ -714,15 +714,21 @@ int main(int argc, char **argv)
 
 	ReadGraph();
 	NormalizeEdgeWeight();
-	QueryProcessing();
-	targetCount = RecalProbability();
-	ReNormalizeEdgeProbability();
-	DiffusionTime();
-//	FindMTP();
-	printf("\nPrint Graph Information : \n");
-	printGraph();
 
-	Baseline(targetCount);
+//	QueryProcessing();
+//	targetCount = RecalProbability();
+//	ReNormalizeEdgeProbability();
+	DiffusionTime();
+
+//	printf("\nPrint Graph Information : \n");
+//	printGraph();
+
+//	Baseline(targetCount);
+
+	LD_Tree();		// build LD tree before query processing.
+
+//	double dist[totalvertices];
+//	FindMTP(2, dist);
 
 	return 0;
 }

@@ -7,14 +7,15 @@
 #define MAX(X, Y) ( X > Y ? X : Y)
 #define MIN(X, Y) ( X < Y ? X : Y)
 
+/* Each vertex's structure */
 struct Vertex {
 	int ID;
 	int *label;
-//	bool update;
 	struct Neighbor *prev;
 	struct Neighbor *next;
 };
 
+/* Each vertex's neighbor, no matter in-neighbor or out-neighbor */
 struct Neighbor {
 	int ID;
 	double weight;
@@ -23,7 +24,20 @@ struct Neighbor {
 	struct Neighbor *next;
 };
 
-struct Vertex **Users;
+struct VertexLD {
+	int ID;
+//	int arriveTime;
+	struct Influencer *prev;
+};
+
+struct Influencer {
+	int ID;
+	double time;
+	struct Influencer *next;
+};
+
+struct Vertex **Users;						// Store the network graph
+struct VertexLD **UsersLD;					// Store the local diffusion tree
 
 void ReadGraph(void);						// Read social networks graph
 void InitializeVertices(int);				// Create an array of struct Vertex pointer, which points to each user
