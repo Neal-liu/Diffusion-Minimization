@@ -26,7 +26,7 @@ struct Neighbor {
 
 struct VertexLD {
 	int ID;
-//	int arriveTime;
+	int *prevPath;
 	struct Influencer *prev;
 };
 
@@ -55,6 +55,12 @@ int CompareFeatures(char *);
 void StoreFeaturesName(void);
 void ReNormalizeEdgeProbability(void);
 void SyncInNeighborWithPro(int, int, double);
+
+void StoreInfluencer(int, int, double);
+void FindMTPwithTree(int, double);
+int AddCandidate(int *, int);
+int ChooseCandidates(int, int *);
+void LD_Tree(int);
 
 int totalvertices;							// number of total users
 int totalfeatures;							// number of total features

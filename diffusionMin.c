@@ -537,17 +537,17 @@ void ReNormalizeEdgeProbability(void)
 
 /* Sort the distToTarget array using bubble sort. "end" is true means get 
 the last one index, it also means get the maximum value index, vice versa. */
-int BubbleSort(double *distToTarget, bool end)
+int BubbleSort(double *distToTarget, bool end, int size)
 {
 	int i, j, itmp;
 	double tmp;
-	int index[totalvertices];
+	int index[size];
 
-	for(i = 0 ; i < totalvertices ; i++)
+	for(i = 0 ; i < size ; i++)
 		index[i] = i;
 
-	for(i = 0 ; i < totalvertices-1 ; i++){
-		for(j = 0 ; j < totalvertices-i-1 ; j++){
+	for(i = 0 ; i < size-1 ; i++){
+		for(j = 0 ; j < size-i-1 ; j++){
 			if(distToTarget[j] > distToTarget[j+1]){
 				tmp = distToTarget[j];		// value exchange
 				distToTarget[j] = distToTarget[j+1];
@@ -560,11 +560,11 @@ int BubbleSort(double *distToTarget, bool end)
 		}
 	}
 
-	for(i = 0 ; i < totalvertices ; i++)
+	for(i = 0 ; i < size ; i++)
 		printf("index %d is %f\n", index[i], distToTarget[i]);
 
 	if(end)
-		return index[totalvertices-1];
+		return index[size-1];
 	else
 		return index[0];
 }
@@ -579,10 +579,10 @@ bool isInclude(int node ,int *seedSet){
 	return false;
 }
 
-double *InitializeEachReduce(double *eachReduce)
+double *InitializeEachReduce(double *eachReduce, int number)
 {
 	int i;
-	for(i = 0 ; i < totalvertices ; i++)
+	for(i = 0 ; i < number ; i++)
 		eachReduce[i] = 0;
 	return eachReduce;
 }
@@ -607,7 +607,6 @@ void Baseline(int targetCount)
 	/*	initialize targets array, distToTargets array, firstRound array, eachReduce array. */
 	for(i = 0 ; i < targetCount ; i++){
 		targets[i] = DBL_MAX;
-
 		if(!distToTargets[i])
 			distToTargets[i] = malloc(totalvertices * sizeof(double));
 		for(j = 0 ; j < totalvertices ; j++)
@@ -617,11 +616,12 @@ void Baseline(int targetCount)
 		firstRound[i] = -1;
 		eachReduce[i] = 0;
 	}
+	memset(seedSet, -1, sizeof(seedSet));
 
 	/* Get the first seed. Then get the next seed by recording the marginal gain of each node. */
 	int count = 0;
 	while(topk > 0){
-		InitializeEachReduce(eachReduce);
+		InitializeEachReduce(eachReduce, totalvertices);
 		best = true;														// check the diffusion time has improved or not
 
 		for(i = 0 ; i < targetCount ; i++){
@@ -645,9 +645,9 @@ void Baseline(int targetCount)
 			break;
 		}
 		if(count == 0)
-			top1 = BubbleSort(firstRound, false);
+			top1 = BubbleSort(firstRound, false, totalvertices);
 		else
-			top1 = BubbleSort(eachReduce, true);
+			top1 = BubbleSort(eachReduce, true, totalvertices);
 			
 		seedSet[count++] = top1;											// store top1 to seed set
 		printf("top %d is %d\n", count, top1);
@@ -715,9 +715,9 @@ int main(int argc, char **argv)
 	ReadGraph();
 	NormalizeEdgeWeight();
 
-//	QueryProcessing();
-//	targetCount = RecalProbability();
-//	ReNormalizeEdgeProbability();
+	QueryProcessing();
+	targetCount = RecalProbability();
+	ReNormalizeEdgeProbability();
 	DiffusionTime();
 
 //	printf("\nPrint Graph Information : \n");
@@ -725,7 +725,7 @@ int main(int argc, char **argv)
 
 //	Baseline(targetCount);
 
-	LD_Tree();		// build LD tree before query processing.
+	LD_Tree(targetCount);		// build LD tree before query processing.
 
 //	double dist[totalvertices];
 //	FindMTP(2, dist);
