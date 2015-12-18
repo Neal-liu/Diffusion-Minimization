@@ -301,10 +301,8 @@ double *FindMTP(int root, double *dist)
 					dist[current->ID] = dist[min_index]+current->time;
 					prev[current->ID] = min_index;
 				}	
-
 			}
 		}
-
 	}
 
 	/* verify the algorithm is correct!? */

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <float.h>
+#include <string.h>
 #include <stdlib.h>
 #include "diffusionMin.h"
 
@@ -58,7 +59,7 @@ void FindMTPwithTree(int root, double threshold)
 
 		/* Pick the minimum distance from the set of vertices not yet processed. */
 		min_index = minDistance(dist, sptSet);
-		printf("min index is %d\n", min_index);
+//		printf("min index is %d\n", min_index);
 		if(min_index == -1)										// can not find the minimum time vertex, no more visit.
 			break;
 		sptSet[min_index] = true;
@@ -68,7 +69,8 @@ void FindMTPwithTree(int root, double threshold)
 		/* Update dist value of the adjacent vertices of the picked vertex. */
 		if(Users[min_index] != NULL && Users[min_index]->prev != NULL){
 			current = Users[min_index]->prev;
-			double minTime = 1 * 1/current->weight; 			// set propagation probability to 1 as the fastest diffusion time.
+//			double minTime = 1 * 1/current->weight; 			// set propagation probability to 1 as the fastest diffusion time, but this will cause different minimum time path. 
+			double minTime = current->time;
 //			printf("minTime is %f\n", minTime);
 //			printf("min index is %d\n", min_index);
 //			printf("current id is %d\n", current->ID);
@@ -90,7 +92,8 @@ void FindMTPwithTree(int root, double threshold)
 	/* copy the prev[] array to UsersLD array. It will use in block issue. */
 	memcpy(UsersLD[root]->prevPath, prev, totalvertices*sizeof(int));
 
-	/* verify the algorithm is correct!? */
+/*
+	// verify the algorithm is correct!? 
 	printf("Vertex		Distance(time) from source\n");
 	for(i = 0 ; i < totalvertices ; i++){
 		printf("%d\t\t%f\n", i, dist[i]);
@@ -120,6 +123,8 @@ void FindMTPwithTree(int root, double threshold)
 		printf("No local diffusion tree !!\n");
 
 	printf("DONE!\n");
+
+*/
 	return;
 }
 
@@ -156,8 +161,8 @@ int ChooseCandidates(int targetCount, int *candidates)
 	for(i = 0 ; i < targetCount ; i++){
 		current = UsersLD[targetUsers[i]]->prev;
 		if(current != NULL){
-			printf("\ntarget %d is %d\n", i, targetUsers[i]);
-			printf("its tree is : %d ", current->ID);
+//			printf("\ntarget %d is %d\n", i, targetUsers[i]);
+//			printf("its tree is : %d ", current->ID);
 			candidatesTmp = AddCandidate(candidates, current->ID);
 			candidatesNum = MAX(candidatesNum, candidatesTmp);
 
@@ -174,6 +179,54 @@ int ChooseCandidates(int targetCount, int *candidates)
 	}
 
 	return candidatesNum;
+}
+
+
+/* Check prevID is included in seedSet or not. */
+bool isIncludeSeeds(int prevID, int *seedSet)
+{
+	int i;
+
+	for(i = 0 ; i < seedNumber ; i++){
+		if(prevID == seedSet[i])
+			return true;
+	}
+
+	return false;
+}
+
+/* Recursively check the previous id. */
+bool MeetSeed(int targetID, int candidateID, int *seedSet){
+
+	int prevID = UsersLD[targetID]->prevPath[candidateID];
+	if(prevID != -1){
+		if(isIncludeSeeds(prevID, seedSet))
+			return true;
+		MeetSeed(targetID, prevID, seedSet);
+	}
+	else
+		return false;
+}
+
+/* Check the candidate go through the target will meet seeds or not. */
+bool isBlock(int targetID, int candidateID, int *seedSet)
+{
+	int *prev = NULL;
+	int i;
+
+	if(UsersLD[targetID]->prevPath)
+		prev = UsersLD[targetID]->prevPath;
+
+	printf("\ncandidate %d \n", candidateID);
+
+	bool match = MeetSeed(targetID, candidateID, seedSet);
+	if(match){
+		printf("\nBlock!!\n");
+		return true;
+	}
+	else
+		return false;
+
 }
 
 void FindSeeds(int targetCount, int *candidates, int candidatesNum)
@@ -219,6 +272,10 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 //					printf("node %d to node %d : %f\n", candidates[j], targetUsers[i], distToTargets[i][candidates[j]]);
 					best = false;
 				}
+				/* check the candidate is blocked by seed or not. */
+				else if(isBlock(targetUsers[i], candidates[j], seedSet)){
+					continue;
+				}
 				/* if node has contribution of diffusion time, then store it into "eachReduce" to get the most one. */
 				else if(!isInclude(candidates[j], seedSet) && distToTargets[i][candidates[j]]<targets[i]) {
 					eachReduce[j] += targets[i]-distToTargets[i][candidates[j]];		
@@ -261,7 +318,8 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 void LD_Tree(int targetCount)
 {
 	int i, j;
-	double threshold = 0.22;	
+//	double threshold = 0.22;
+	double threshold = 100;
 	int *candidates = malloc(totalvertices * sizeof(int));
 	int candidatesNum;
 
