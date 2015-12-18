@@ -161,8 +161,8 @@ int ChooseCandidates(int targetCount, int *candidates)
 	for(i = 0 ; i < targetCount ; i++){
 		current = UsersLD[targetUsers[i]]->prev;
 		if(current != NULL){
-//			printf("\ntarget %d is %d\n", i, targetUsers[i]);
-//			printf("its tree is : %d ", current->ID);
+			printf("\ntarget %d is %d\n", i, targetUsers[i]);
+			printf("its tree is : %d ", current->ID);
 			candidatesTmp = AddCandidate(candidates, current->ID);
 			candidatesNum = MAX(candidatesNum, candidatesTmp);
 
@@ -176,6 +176,40 @@ int ChooseCandidates(int targetCount, int *candidates)
 		}
 		else
 			continue;
+	}
+
+	return candidatesNum;
+}
+
+/* Choose candidates with sorted list. */
+int ChooseCandidatesWithSL(int targetCount, int *candidates)
+{
+	int i, j;
+	int level = 0;
+	struct Influencer *current = NULL;
+	int candidatesNum = 0, candidatesTmp;
+	int *hashTable = malloc(totalvertices * sizeof(int));
+
+	memset(hashTable, 0, sizeof(hashTable));
+	memcpy(candidates, targetUsers, totalvertices*sizeof(int));
+
+	for(i = 0 ; i < totalvertices ; i++){
+		for(j = 0 ; j < targetCount ; j++){
+			level = 0;
+			current = UsersLD[targetUsers[j]]->prev;
+			while(current != NULL && level != i){
+				current = current->next;
+				level++;
+			}
+			if(current == NULL)
+				continue;
+			else if(level == i){
+				candidatesNum = AddCandidate(candidates, current->ID);
+				hashTable[current->ID]++;
+				if(hashTable[current->ID] == targetCount)
+					return candidatesNum;
+			}
+		}
 	}
 
 	return candidatesNum;
@@ -330,7 +364,10 @@ void LD_Tree(int targetCount)
 		FindMTPwithTree(i, threshold);
 	}
 
+	/* union the LD tree as the candidates */
 	candidatesNum = ChooseCandidates(targetCount, candidates);
+
+	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
 
 	printf("\n");
 	for(i = 0 ; i < totalvertices ; i++){
