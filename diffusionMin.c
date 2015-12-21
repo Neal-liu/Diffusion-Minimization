@@ -5,10 +5,21 @@
 #include <string.h>
 #include "diffusionMin.h"
 
-void ReadGraph(void)
+void ReadGraph(char *file)
 {
-	FILE *fp = fopen("synthetic.edge", "r");
-	FILE *fp2 = fopen("synthetic.feat", "r");
+	char *file_edge;
+	char *file_feat;
+	int length = strlen(file);
+
+	file_edge = malloc(length * sizeof(char));
+	file_feat = malloc(length * sizeof(char));
+	strncpy(file_edge, file, length);
+	strncpy(file_feat, file, length);
+	strncat(file_edge, ".edge", 5);
+	strncat(file_feat, ".feat", 5);
+
+	FILE *fp = fopen(file_edge, "r");
+	FILE *fp2 = fopen(file_feat, "r");
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read;
@@ -320,7 +331,7 @@ double *FindMTP(int root, double *dist)
 	return dist;
 }
 
-/* On query processing, split the query and get the target features. */
+/* On query processing, split the query, get the k influential nodes and the target features. */
 void QueryProcessing(void)
 {
 	char *target_labels;	// total target labels
@@ -391,7 +402,11 @@ int CompareFeatures(char *label)
 /* Initialize the FeaturesName array , and store the value in it. */
 void StoreFeaturesName(void)
 {
-	FILE *fp = fopen("synthetic.featnames", "r");
+	char *file_featnames = malloc(strlen(dataset) * sizeof(char));
+	strcpy(file_featnames, dataset);
+	strncat(file_featnames, ".featnames", 10);
+
+	FILE *fp = fopen(file_featnames, "r");
 	char *line = NULL;
 	char *token;
 	size_t len = 0;
@@ -709,8 +724,11 @@ void printGraph(void)
 int main(int argc, char **argv)
 {
 	int targetCount;
+	dataset = malloc(strlen(argv[1]) * sizeof(char));
+	strncpy(dataset, argv[1], strlen(argv[1]));
+//	dataset = argv[1];
 
-	ReadGraph();
+	ReadGraph(dataset);
 	NormalizeEdgeWeight();
 
 	QueryProcessing();
@@ -725,8 +743,6 @@ int main(int argc, char **argv)
 
 	LD_Tree(targetCount);		// build LD tree before query processing.
 
-//	double dist[totalvertices];
-//	FindMTP(2, dist);
 
 	return 0;
 }
