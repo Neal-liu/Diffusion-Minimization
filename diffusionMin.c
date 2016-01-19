@@ -3,30 +3,21 @@
 #include <stdbool.h>
 #include <float.h>
 #include <string.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <time.h>
 #include "diffusionMin.h"
 
-void ReadGraph(char *file)
+void ReadGraph(char *file_edge, char *directory)
 {
-	char *file_edge;
-	char *file_feat;
-	int length = strlen(file);
-
-	file_edge = malloc(length * sizeof(char));
-	file_feat = malloc(length * sizeof(char));
-	strncpy(file_edge, file, length);
-	strncpy(file_feat, file, length);
-	strncat(file_edge, ".edge", 5);
-	strncat(file_feat, ".feat", 5);
-
 	FILE *fp = fopen(file_edge, "r");
-	FILE *fp2 = fopen(file_feat, "r");
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read;
 	bool firstline = true;
 
 	while((read = getline(&line, &len, fp)) != -1){
-//		printf("%s", line);
 		if(firstline){
 			firstline = false;
 			InitializeVertices(atoi(line));
@@ -37,46 +28,89 @@ void ReadGraph(char *file)
 		}
 	}
 
-	firstline = true;
-	while((read = getline(&line, &len, fp2)) != -1){
-//		printf("%s", line);
-		if(firstline){
-			firstline = false;
-			totalfeatures = atoi(line);
-			printf("total features number is %d\n", totalfeatures);
-			continue;
-		}
-		else {
-			StoreFeatures(line);
-		}
-	}
+	DIR *dp;
+	struct dirent *entry;
+	struct stat statbuf;
+	int length, depth = 0;
+	char *filename;
+	char *dir = directory;
 
+	if((dp = opendir(dir)) == NULL) {
+		fprintf(stderr,"cannot open directory: %s\n", dir);
+		return;
+	}
+	chdir(dir);
+	communityNum = 0;
+	while((entry = readdir(dp)) != NULL) {
+		lstat(entry->d_name,&statbuf);
+
+		length = strlen(entry->d_name);
+		if(strcmp(&entry->d_name[length-5], ".feat") == 0){		// get the file with XX.feat ending
+			filename = malloc((length-4) * sizeof(char));
+			strncpy(filename, entry->d_name, length-5);
+			filename[length-5] = '\0';
+
+			firstline = true;
+			FILE *fp2 = fopen(entry->d_name, "r");
+			while((read = getline(&line, &len, fp2)) != -1){
+				if(firstline){
+					firstline = false;
+					totalfeatures = atoi(line);
+//					printf("total features number is %d\n", totalfeatures);
+					StoreFeaturesName(filename);		// read XX.featnames to store each node's feature
+					continue;
+				}
+				else {
+					StoreFeatures(line);
+				}
+			}
+			fclose(fp2);
+			communityNum++;
+		}
+
+	}
+	chdir("..");
+	free(filename);
+	closedir(dp);
 	fclose(fp);
-	fclose(fp2);
+
 	return;
 }
 
 /* Create an array of struct Vertex pointer, which points to each user. */
 void InitializeVertices(int number)
 {
-//	printf("%d\n", number);
+	printf("%d\n", number);
 	totalvertices = number;
 	Users = malloc(number * sizeof(struct Vertex *));
+
 	return;
 }
 
 /* Include file.edge to store the users' relationship. */
 void StoreRelationship(char *relation)
 {
-	int node1 = atoi(relation);
-	int node2 = atoi(relation + 2);
-	int closeness = atoi(relation + 4);
+	char *token[3];
+	char *p;
+	int i = 0;
+
+	p = strtok(relation, " ");
+	while(p != NULL){
+		token[i++] = p;
+		p = strtok(NULL, " ");
+	}
+	int node1 = atoi(token[0]) % totalvertices;
+	int node2 = atoi(token[1]) % totalvertices;
+	int closeness = atoi(token[2]);
+//	printf("node1 is %d\n", node1);
+//	printf("node2 is %d\n", node2);
+//	printf("closeness is %d\n", closeness);
 	struct Neighbor *current = NULL;
 
 	if(!Users[node1]){
 		Users[node1] = malloc(sizeof(struct Vertex));
 		Users[node1]->ID = node1;
-//		Users[node1]->update = false;
+		Users[node1]->community = -1;
 		Users[node1]->prev = NULL;
 		Users[node1]->next = NULL;
 //		printf("create node %d\n", node1);
@@ -84,7 +118,7 @@ void StoreRelationship(char *relation)
 	if(!Users[node2]){
 		Users[node2] = malloc(sizeof(struct Vertex));
 		Users[node2]->ID = node2;
-//		Users[node2]->update = false;
+		Users[node2]->community = -1;
 		Users[node2]->prev = NULL;
 		Users[node2]->next = NULL;
 //		printf("create node %d\n", node2);
@@ -132,7 +166,7 @@ void NormalizeEdgeWeight(void)
 	double total = 0.0;
 	struct Neighbor *current = NULL;
 
-	printf("Normalize Edge Weight : \n");
+	printf("Normalize Edge Weight... \n");
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL && Users[i]->prev != NULL){
 			current = Users[i]->prev;
@@ -143,19 +177,18 @@ void NormalizeEdgeWeight(void)
 				total += current->weight;
 			}
 		}
-
-		printf("user %d : total weight is %f\n", i, total);
+//		printf("user %d : total weight is %f\n", i, total);
 
 		if(total != 0.0){
 			current = Users[i]->prev;		// u->v , only consider v's in-neighbor.
 			current->probability = current->weight/total;
 			SyncOutNeighbor(current->ID, i, current->probability);		// synchronize out neightbor
-			printf("node %d to node %d probability is %f\n", current->ID, i, current->probability);
+//			printf("node %d to node %d probability is %f\n", current->ID, i, current->probability);
 			while(current->next != NULL){
 				current = current->next;
 				current->probability = current->weight/total;
 				SyncOutNeighbor(current->ID, i, current->probability);
-				printf("node %d to node %d probability is %f\n", current->ID, i, current->probability);
+//				printf("node %d to node %d probability is %f\n", current->ID, i, current->probability);
 			}
 		}
 
@@ -199,18 +232,40 @@ void SyncInNeighbor(int u, int v, double time)
 void StoreFeatures(char *features)
 {
 	int i, value;
-	int node = atoi(features);
+	char *featurestmp = malloc((strlen(features)+1) * sizeof(char));
+	int node = atoi(features) % totalvertices;
+	int count = 0;
 
-	if(!Users[node]->label){
+	strcpy(featurestmp, features);
+	featurestmp[strlen(features)] = '\0';
+	Users[node]->community = communityNum;
+//	printf("node %d community is %d\n", node, Users[node]->community);
+//	printf("node id %d\n", node);
+
+	if(Users[node] != NULL || Users[node]->label != NULL){
 		Users[node]->label = malloc(totalfeatures * sizeof(int));
 	}
 	else{
 		printf("duplicate features !!\n");
 		return;
 	}
-
+//	printf("\n");
+	
+	free(Users[node]->feature);
+	Users[node]->feature = malloc(totalfeatures * sizeof(char *));
+	featurestmp = strtok(featurestmp, " ");
 	for(i = 1 ; i <= totalfeatures ; i++){
-		Users[node]->label[i-1] = atoi(features + i*2);
+		Users[node]->feature[i-1] = NULL;
+		featurestmp = strtok(NULL, " ");
+		Users[node]->label[i-1] = atoi(featurestmp);
+
+		if(Users[node]->label[i-1] == 1){
+			Users[node]->feature[count] = malloc((strlen(featuresName[i-1])+1) * sizeof(char));
+			strcpy(Users[node]->feature[count], featuresName[i-1]);
+			Users[node]->feature[count][strlen(featuresName[i-1])] = '\0';
+//			printf("feature : %s %d\n", Users[node]->feature[count], count);
+			count++;
+		}
 	}
 
 /*  // Print each user's feature.
@@ -266,7 +321,7 @@ void printPath(int dest, int prev[])
 {
 	if(prev[dest] != -1)
 		printPath(prev[dest], prev);
-	printf("%d ", dest);
+//	printf("%d ", dest);
 }
 
 /* Find minimum time path using dijkstra's algorithm. */
@@ -279,10 +334,8 @@ double *FindMTP(int root, double *dist)
 	int min_index;
 	struct Neighbor *current = NULL;
 
-//	srand(time(NULL));
-//	src = rand()%totalvertices;
 	src = root;
-	printf("src is %d\n", src);
+//	printf("src is %d\n", src);
 
 	for(i = 0 ; i < totalvertices ; i++){
 		dist[i] = DBL_MAX;
@@ -296,7 +349,9 @@ double *FindMTP(int root, double *dist)
 
 		/* Pick the minimum distance from the set of vertices not yet processed. */
 		min_index = minDistance(dist, sptSet);
-		printf("min index is %d\n", min_index);
+		if(min_index == -1)
+			break;
+//		printf("min index is %d\n", min_index);
 		sptSet[min_index] = true;
 
 		/* Update dist value of the adjacent vertices of the picked vertex. */
@@ -317,16 +372,16 @@ double *FindMTP(int root, double *dist)
 	}
 
 	/* verify the algorithm is correct!? */
-	printf("Vertex		Distance(time) from source\n");
-	for(i = 0 ; i < totalvertices ; i++)
-		printf("%d\t\t%f\n", i, dist[i]);
+//	printf("Vertex		Distance(time) from source\n");
+//	for(i = 0 ; i < totalvertices ; i++)
+//		printf("%d\t\t%f\n", i, dist[i]);
 
-	printf("Get the path\n");
-	for(i = 0 ; i < totalvertices ; i++){
-		printf("node %d : ", i);
-		printPath(i, prev);
-		printf("\n");
-	}
+//	printf("Get the path\n");
+//	for(i = 0 ; i < totalvertices ; i++){
+//		printf("node %d : ", i);
+//		printPath(i, prev);
+//		printf("\n");
+//	}
 
 	return dist;
 }
@@ -335,94 +390,93 @@ double *FindMTP(int root, double *dist)
 void QueryProcessing(void)
 {
 	char *target_labels;	// total target labels
-	char *label;	// single label
-	char *saveptr;	// used in strtok_r() in order to maintain context between successive calls that parse the same string.
+	char *label;			// single label
+	char *saveptr;			// used in strtok_r() in order to maintain context between successive calls that parse the same string.
 	int index, i;
 
-	targetFeature = malloc(totalfeatures * sizeof(int));
-	
-	for(i = 0 ; i < totalfeatures ; i++)		// Initialize the array 
-		targetFeature[i] = 0;
+	printf("Features : %s\n", allFeatures);
 	printf("Input k : \n");
 //	scanf("%d", &seedNumber);
 	printf("Input specific targets using attributes with blank to separate : \n");
-	printf("(for example : basketball curry ...)\n");
-//	scanf("%s", labels);
+	printf("(for example : Basketball Curry ...)\n");
+//	scanf("%s", labels);	// use target_labels to replace it temporarily
 
-	seedNumber = 4;
-	target_labels = "basketball curry Taipei";
+	seedNumber = 2;
+//	target_labels = "google";
+	target_labels = "basketball curry";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
-	char *labels = strdup(target_labels);		// maybe target_labels return a pointer to a read-only char array, strdup is one of the solution.
 
-	label = strtok_r(labels, " ", &saveptr);
-	while(label != NULL){
-		printf("%s ", label);
-		index = CompareFeatures(label);
-		if(index == -1){		// If the label doesn't feat any other features.
-			printf("No such features on our users.\n");
-			exit(1);
-		}
-		targetFeature[index] = 1;
-//		printf("index is %d\n", index);
-		label = strtok_r(NULL, " ", &saveptr);
-	}
-
-/*	Above code could rewrite as follows : 
-	while((label = strtok_r(labels, " ", &labels))){
-		printf("%s ", label);
-		...
-	}
-*/
-	printf("\n");
-	for(i = 0 ; i < totalfeatures ; i++)
-		printf("%d ", targetFeature[i]);
+	targetFeature = malloc(strlen(target_labels) * sizeof(char));
+	strncpy(targetFeature, target_labels, strlen(target_labels));
+	printf("target Features are : %s", targetFeature);
 
 	printf("\n\n");
 	return;
 }
 
-/* Compare the features are matched or not, and return the "file.featnames"'s index. */
-int CompareFeatures(char *label)
+/* Compare the "label" is matched with targetFeature or not, and return true if matches. */
+bool CompareFeatures(char *label)
 {
 	int i;
+	char *token;
+	char *tmp = malloc((strlen(targetFeature)+1) * sizeof(char));
+	strcpy(tmp, targetFeature);
+	tmp[strlen(targetFeature)] = '\0';
 
-	if(!featuresName){
-		StoreFeaturesName();
-	}	
+//	printf("\ncompare feature : %s\n", label);
+//	printf("target Feature : %s\n", targetFeature);
 
-	for(i = 0 ; i < totalfeatures ; i++){
-		if(strcmp(label, featuresName[i]) == 0)
-			return i;
+	while(token = strtok_r(tmp, " ", &tmp)){
+//		printf("target token : %s\n", token);
+		if(strcasecmp(label, token) == 0){
+			return true;
+		}
 	}
-
-	return -1;	
+	return false;	
 }
 
-/* Initialize the FeaturesName array , and store the value in it. */
-void StoreFeaturesName(void)
+/* The FeaturesName array is corrensponding to each "file.featnames" */
+void StoreFeaturesName(char *file_featnames)
 {
-	char *file_featnames = malloc(strlen(dataset) * sizeof(char));
-	strcpy(file_featnames, dataset);
 	strncat(file_featnames, ".featnames", 10);
 
 	FILE *fp = fopen(file_featnames, "r");
 	char *line = NULL;
-	char *token;
 	size_t len = 0;
 	ssize_t read;
-	int count = 0;
+	int count = 0, i = 0;
 
-	featuresName = malloc(totalfeatures * sizeof(char *));
+	free(featuresName);
+	featuresName = malloc((totalfeatures+1) * sizeof(char *));
 
 	while((read = getline(&line, &len, fp)) != -1){
-		token = strtok(line, " ");
+		char *token = strtok(line, " ");
 		if(token != NULL)
 			token = strtok(NULL, "\n");
 
+//		printf("token : %s %d\n", token, count);
+		if(token == NULL)
+			token = "NULL";
+
 		featuresName[count] = malloc((strlen(token)+1) * sizeof(char));
 		strcpy(featuresName[count], token);
-//		printf("%d %s", strlen(token), featuresName[count]);
+		featuresName[count][strlen(token)] = '\0';
+//		printf("\n%zu %s\n", strlen(token), featuresName[count]);
+//		printf("%s \n", featuresName[count]);
+
+
+		if(!allFeatures){
+			allFeatures = malloc((strlen(token)+1) * sizeof(char));
+			strcpy(allFeatures, token);
+			allFeatures[strlen(token)] = ' ';
+		}
+		else{
+			allFeatures = realloc(allFeatures, (strlen(allFeatures)+strlen(token)+1) * sizeof(char));
+			strcat(allFeatures, token);
+			allFeatures[strlen(allFeatures)] = ' ';
+		}
+//		printf("all Features : %s\n", allFeatures);
 		count++;
 	}
 
@@ -439,55 +493,78 @@ int RecalProbability(void)
 	struct Neighbor *current = NULL;
 	bool voluntary = false;
 
-	printf("Re calculate edge probability : \n");
+	printf("Re calculate edge probability... \n");
 
-	if(!targetUsers)
+//	if(!targetUsers)
 		targetUsers = malloc(totalvertices * sizeof(int));
-	
 
-	for(i = 0 ; i < totalfeatures ; i++){				// calculate the total target features' number
-		if(targetFeature[i] == 1)
-			targetNum++;
+	char *tmp = malloc((strlen(targetFeature)+1) * sizeof(char));
+	strcpy(tmp, targetFeature);
+	tmp[strlen(targetFeature)] = '\0';
+	char *label = strtok(tmp, " ");				// calculate the total target features' number
+	while(label != NULL){
+		targetNum++;
+		label = strtok(NULL, " ");
 	}
+	printf("targetNum is %d\n", targetNum);
 
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL){
+//			printf("user %d : \n", i);
 			intersections = 0;
 			unions = 0;
 			targetUsers[i] = -1;
-			for(j = 0 ; j < totalfeatures ; j++){		// calculate the intersections and unions of each user's feature
-//				printf("%d ", Users[i]->label[j]);	
-				if(Users[i]->label[j] == targetFeature[j] && targetFeature[j] == 1)
-					intersections++;
-				if(Users[i]->label[j] == 1 || targetFeature[j] == 1)
-					unions++;
+			j = 0;
+			if(Users[i]->label != NULL){
+				while(Users[i]->feature[j] != NULL){
+//					printf("%s %d\n", Users[i]->feature[j], j);
+					if(CompareFeatures(Users[i]->feature[j])){
+						intersections++;
+						unions++;
+					}
+					else
+						unions++;
+					j++;
+				}
 			}
 
 			/* if user's intersections is included whole query features, the user will be target. */
 			if(intersections == targetNum){
 				targetUsers[targetCount++] = i;
 				printf("\nuser %d is target !!\n", i);
+	//			if(i == 9953 || i == 75365)
+	//				system("read var1");
 			}
+			if(unions != 0){
+				printf("\n");
+				printf("intersections:%d unions:%d -> %f\n", intersections, unions, (double)intersections/unions);
+				if((double)intersections/unions > 0){
+					voluntary = true;
+//					system("read var1");
+				}
+				else{
+					voluntary = false;
+					printf("No need to update !\n");
+				}
 
-			printf("\n");
-			printf("intersections:%d unions:%d -> %f\n", intersections, unions, (double)intersections/unions);
-			if((double)intersections/unions > 0)
-				voluntary = true;
-			else{
-				voluntary = false;
-				printf("No need to update !\n");
+				current = Users[i]->next;
+				while(current != NULL && voluntary){
+					printf("Previous : user %d to %d: %f\n", i, current->ID, current->probability);
+					/* 1*propagation probability + self sontaniously * propagation probability */
+					current->probability = 1*current->probability + ((double)intersections/unions)*current->probability;
+					printf("\tuser %d to %d: %f\n", i, current->ID, current->probability);
+					SyncInNeighborWithPro(i, current->ID, current->probability);
+					current = current->next;
+				}
 			}
-
-			current = Users[i]->next;
-			while(current != NULL && voluntary){
-				printf("Previous : user %d to %d: %f\n", i, current->ID, current->probability);
-				/* 1*propagation probability + self sontaniously * propagation probability */
-				current->probability = 1*current->probability + ((double)intersections/unions)*current->probability;
-				printf("\tuser %d to %d: %f\n", i, current->ID, current->probability);
-				SyncInNeighborWithPro(i, current->ID, current->probability);
-				current = current->next;
-			}
+			else
+				printf("No Features !!\n");
 		}
+	}
+
+	if(targetCount == 0){
+		printf("Targets are not found !!\n");
+		exit(0);
 	}
 
 	return targetCount;
@@ -573,8 +650,8 @@ int BubbleSort(double *distToTarget, bool end, int size)
 		}
 	}
 
-	for(i = 0 ; i < size ; i++)
-		printf("index %d is %f\n", index[i], distToTarget[i]);
+//	for(i = 0 ; i < size ; i++)
+//		printf("index %d is %f\n", index[i], distToTarget[i]);
 
 	if(end)
 		return index[size-1];
@@ -608,6 +685,7 @@ void Baseline(int targetCount)
 	int topk = seedNumber;
 	int seedSet[seedNumber];
 	bool best = true;
+	double diffusionTime = 0.0;
 
 	/* create a 2D array distToTargets[eachTarget][eachNode] */
 	double **distToTargets = malloc(targetCount * sizeof(double *));
@@ -620,17 +698,17 @@ void Baseline(int targetCount)
 	/*	initialize targets array, distToTargets array, firstRound array, eachReduce array. */
 	for(i = 0 ; i < targetCount ; i++){
 		targets[i] = DBL_MAX;
-		if(!distToTargets[i])
-			distToTargets[i] = malloc(totalvertices * sizeof(double));
-		for(j = 0 ; j < totalvertices ; j++)
+		distToTargets[i] = malloc(totalvertices * sizeof(double));
+		for(j = 0 ; j < totalvertices ; j++){
 			distToTargets[i][j] = -1;
+		}
 	}
 	for(i = 0 ; i < totalvertices ; i++){
 		firstRound[i] = -1;
 		eachReduce[i] = 0;
 	}
 	memset(seedSet, -1, sizeof(seedSet));
-
+	
 	/* Get the first seed. Then get the next seed by recording the marginal gain of each node. */
 	int count = 0;
 	while(topk > 0){
@@ -642,7 +720,7 @@ void Baseline(int targetCount)
 			for(j = 0 ; j < totalvertices ; j++){
 				if(count == 0){
 					firstRound[j] = MAX(firstRound[j], distToTargets[i][j]);
-					printf("node %d to node %d : %f\n", j, targetUsers[i], distToTargets[i][j]);
+//					printf("node %d to node %d : %f\n", j, targetUsers[i], distToTargets[i][j]);
 					best = false;
 				}
 				/* if node has contribution of diffusion time, then store it into "eachReduce" to get the most one. */
@@ -663,20 +741,25 @@ void Baseline(int targetCount)
 			top1 = BubbleSort(eachReduce, true, totalvertices);
 			
 		seedSet[count++] = top1;											// store top1 to seed set
+		diffusionTime = 0.0;
 		printf("top %d is %d\n", count, top1);
 		for(i = 0 ; i < targetCount ; i++){
 			if(distToTargets[i][top1] < targets[i])
 				targets[i] = distToTargets[i][top1];
+				diffusionTime = MAX(diffusionTime, targets[i]);
 			printf("top %d to node %d is : %f\n\n", count, targetUsers[i], targets[i]);
 		}
 
 		topk--;
 	}
 
-	printf("seed set are : \n");
+	printf("targets are : \n");
+	for(i = 0 ; i < targetCount ; i++)
+		printf("%d ", targetUsers[i]);
+	printf("\nseed set are : \n");
 	for(i = 0 ; i < count ; i++)
 		printf("%d ", seedSet[i]);
-	printf("\n");
+	printf("\nDiffusion Time is %lf\n", diffusionTime);
 
 	return;
 }
@@ -724,12 +807,18 @@ void printGraph(void)
 int main(int argc, char **argv)
 {
 	int targetCount;
-	dataset = malloc(strlen(argv[1]) * sizeof(char));
-	strncpy(dataset, argv[1], strlen(argv[1]));
-//	dataset = argv[1];
+	clock_t begin, end;
+	double time_spent;
 
-	ReadGraph(dataset);
+	dataset = malloc((strlen(argv[1])+1) * sizeof(char));
+	directory = malloc((strlen(argv[2])+1) * sizeof(char));
+	strncpy(dataset, argv[1], strlen(argv[1]));
+	strncpy(directory, argv[2], strlen(argv[2]));
+
+	ReadGraph(dataset, directory);
 	NormalizeEdgeWeight();
+
+	begin = clock();
 
 	QueryProcessing();
 	targetCount = RecalProbability();
@@ -739,10 +828,18 @@ int main(int argc, char **argv)
 //	printf("\nPrint Graph Information : \n");
 //	printGraph();
 
+//	printf("Run Baseline Algorithm!\n");
 //	Baseline(targetCount);
 
-	LD_Tree(targetCount);		// build LD tree before query processing.
+//	printf("Run LD Tree Algorithm!\n");
+//	LD_Tree(targetCount);
 
+	printf("Run Community-based Algorithm\n");
+	Community_based(targetCount);
+
+	end = clock();
+	time_spent = (double)(end-begin) / CLOCKS_PER_SEC;
+	printf("execution time : %f\n", time_spent);
 
 	return 0;
 }
