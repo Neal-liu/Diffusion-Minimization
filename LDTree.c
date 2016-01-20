@@ -354,7 +354,7 @@ void LD_Tree(int targetCount)
 {
 	int i = 0, j;
 //	double threshold = 0.22;
-	double threshold = 10;
+	double threshold = 1;
 	int *candidates = malloc(totalvertices * sizeof(int));
 	int candidatesNum;
 

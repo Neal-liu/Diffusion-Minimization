@@ -46,6 +46,7 @@ struct Community {
 	double weight;
 	int degree;
 	int central;
+	double radius;
 	int *closely;
 	struct Neighbor_com *next;
 };
