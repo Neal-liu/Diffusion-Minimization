@@ -99,6 +99,8 @@ int *targetUsers;							// store target users whose features have include all qu
 char *allFeatures;							// store all Features
 /********************************************/
 int communityNum;
+int **comMember;
+int *eachComNumber;
 
 #endif
 

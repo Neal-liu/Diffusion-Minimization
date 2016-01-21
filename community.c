@@ -5,7 +5,7 @@
 #include "diffusionMin.h"
 
 /* Initialize Communities' structure. */
-void InitialCommunities()
+void InitialCommunities(void)
 {
 	int i, j;
 	extern struct Community **Communities;
@@ -28,7 +28,7 @@ void InitialCommunities()
 }
 
 /* Calculate the closely connected communities. */
-void Closely()
+void Closely(void)
 {
 	int i, j, count;
 	struct Neighbor *current = NULL;
@@ -110,8 +110,8 @@ void Closely()
 		printf("%d : average is %lf\n", i, average);
 		while(current_com != NULL){
 			tmp = current_com->weight/current_com->degree;
-			if(average >= tmp){
-				while(Communities[i]->closely[count] == -1)
+			if(average <= tmp){
+				while(Communities[i]->closely[count] != -1)
 					count++;
 				Communities[i]->closely[count] = current_com->ID;
 				printf("\t closely community : %d\n", current_com->ID);
@@ -136,13 +136,14 @@ bool isIncludeCom(int node, int *comMembers)
 }
 
 /* Find the central node from this community with brute force algorithm. */
-int BruteForce(int *comMembers, int number, int comIndex)
+double BruteForce(int *comMembers, int number, int comIndex1, int comIndex2)
 {
 	extern struct Community **Communities;
 	int i, j, central, count;
 	// Store each node to each node's distance in this community
 	double **distToTargets = malloc(number * sizeof(double *));
 	double *maxTime = malloc(number * sizeof(double));
+	int *maxTimeID = malloc(number * sizeof(int));
 
 	for(i = 0 ; i < number ; i++){
 		distToTargets[i] = malloc(totalvertices * sizeof(double));
@@ -155,28 +156,35 @@ int BruteForce(int *comMembers, int number, int comIndex)
 		distToTargets[i] = FindMTP(comMembers[i], distToTargets[i]);
 		count = 0;
 		for(j = 0 ; j < totalvertices ; j++){
-			if(isIncludeCom(Users[j]->ID, comMembers)){
+			if(Users[j] != NULL && isIncludeCom(Users[j]->ID, comMembers)){
 				maxTime[count] = MAX(maxTime[count], distToTargets[i][j]);
+				maxTimeID[count] = Users[j]->ID;
 				count++;
-//				printf("dist To Target : %d to %d : %lf\n", comMembers[i], Users[j]->ID, distToTargets[i][j]);
+//				printf("dist To Target : %d to %d : %lf\n", Users[j]->ID, comMembers[i], distToTargets[i][j]);
 			}
 		}
 	}
 
 	central = BubbleSort(maxTime, false, number);
-	printf("central node is %d : %lf\n", comMembers[central], maxTime[0]);
-	Communities[comIndex]->central = comMembers[central];
-	Communities[comIndex]->radius = maxTime[0];
-
+	printf("\ncentral node is %d : %lf\n", maxTimeID[central], maxTime[0]);
+//	printf("central node is %d : %lf\n", comMembers[central], maxTime[0]);
+	if(comIndex2 == -1){
+		Communities[comIndex1]->central = comMembers[central];
+		Communities[comIndex1]->radius = maxTime[0];
+	}
+	
+	return maxTime[0];
 }
 
-void CalculateCentral()
+void CalculateCentral(void)
 {
 	extern struct Community **Communities;
 	extern int communityNum;
-	int **comMember = malloc(communityNum * sizeof(int *));
-	int *eachComNumber = malloc(communityNum * sizeof(int));
+	extern int **comMember;
+	extern int *eachComNumber;
 	int i, j, count;
+	comMember = malloc(communityNum * sizeof(int *));
+	eachComNumber = malloc(communityNum * sizeof(int));
 
 	// declaration of comMember
 	for(i = 0 ; i < communityNum ; i++){
@@ -190,7 +198,7 @@ void CalculateCentral()
 		count = 0;
 		printf("community : %d\n", i);
 		for(j = 0 ; j < totalvertices ; j++){
-			if(Users[j]->community == i){
+			if(Users[j] != NULL && Users[j]->community == i){
 				comMember[i][count] = Users[j]->ID;
 				printf("member : %d\n", Users[j]->ID);
 				count++;
@@ -200,14 +208,37 @@ void CalculateCentral()
 	}
 
 	for(i = 0 ; i < communityNum ; i++)
-		BruteForce(comMember[i], eachComNumber[i], i);
+		BruteForce(comMember[i], eachComNumber[i], i, -1);
 	
 }
 
-void CommunityMerge()
+void SortComRadius(double *sortRadius, int *indexRadius)
+{
+	extern int communityNum;
+	double tmp;
+	int i, j, itmp;
+
+	for(i = 0 ; i < communityNum-1 ; i++){
+		for(j = 0 ; j < communityNum-1 ; j++){
+			if(sortRadius[j] > sortRadius[j+1]){
+				tmp = sortRadius[j];			// value exchange
+				sortRadius[j] = sortRadius[j+1];
+				sortRadius[j+1] = tmp;
+
+				itmp = indexRadius[j];			// index exchange
+				indexRadius[j] = indexRadius[j+1];
+				indexRadius[j+1] = itmp;
+			}
+		}
+	}
+}
+
+void CommunityMerge(void)
 {
 	extern struct Community **Communities;
 	extern int communityNum;
+	extern int *eachComNumber;
+	extern int **comMember;
 	double tmp;
 	double *sortRadius = malloc(communityNum * sizeof(double));
 	int i, j, itmp;
@@ -218,10 +249,13 @@ void CommunityMerge()
 		indexRadius[i] = i;
 	}
 
+	// Sorted the communities' radius
+	SortComRadius(sortRadius, indexRadius);
+/*
 	for(i = 0 ; i < communityNum-1 ; i++){
 		for(j = 0 ; j < communityNum-1 ; j++){
 			if(sortRadius[j] > sortRadius[j+1]){
-				tmp = sortRadius[j];		// value exchange
+				tmp = sortRadius[j];			// value exchange
 				sortRadius[j] = sortRadius[j+1];
 				sortRadius[j+1] = tmp;
 
@@ -231,9 +265,39 @@ void CommunityMerge()
 			}
 		}
 	}
+*/
 	printf("minimum radius community is %d : %lf\n", indexRadius[0], sortRadius[0]);
+	printf("maxmum radius community is %d : %lf\n", indexRadius[communityNum-1], sortRadius[communityNum-1]);
 
 	// Not Yet Finished...
+	int *mergedMembers;
+	int mergeCount, mergeNumbers, min1, min2;
+	double mergeTime;
+//	while(communityNum > seedNumber){
+	while(1){
+		min1 = indexRadius[0];
+		min2 = Communities[indexRadius[0]]->closely[0];
+		printf("min1 %d min2 %d\n", min1, min2);
+		mergeNumbers = eachComNumber[min1] + eachComNumber[min2];
+		mergedMembers = malloc(mergeNumbers * sizeof(int));
+		mergeCount = 0;
+		for(i = 0 ; comMember[min1][i] != -1 ; i++)
+			mergedMembers[mergeCount++] = comMember[min1][i];
+		for(i = 0 ; comMember[min2][i] != -1 ; i++)
+			mergedMembers[mergeCount++] = comMember[min2][i];
+//		for(i = 0 ; i < mergeNumbers ; i++)
+//			printf("%d ", mergedMembers[i]);
+
+		mergeTime = BruteForce(mergedMembers, mergeNumbers, min1, min2);
+		printf("\nmerge Time : %lf\n", mergeTime);
+		system("read var1");
+		if(mergeTime <= sortRadius[communityNum-1]){
+			// need recontruct the communities and sort the radius again
+			continue;
+		}
+		else
+			break;
+	}
 }
 
 void Community_based(int targetCount)
