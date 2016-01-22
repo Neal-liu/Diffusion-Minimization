@@ -136,7 +136,7 @@ bool isIncludeCom(int node, int *comMembers)
 }
 
 /* Find the central node from this community with brute force algorithm. */
-double BruteForce(int *comMembers, int number, int comIndex1, int comIndex2)
+struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int comIndex2)
 {
 	extern struct Community **Communities;
 	int i, j, central, count;
@@ -172,8 +172,10 @@ double BruteForce(int *comMembers, int number, int comIndex1, int comIndex2)
 		Communities[comIndex1]->central = comMembers[central];
 		Communities[comIndex1]->radius = maxTime[0];
 	}
-	
-	return maxTime[0];
+
+	struct Central_Info info = {maxTimeID[central], maxTime[0]}; 
+
+	return info;
 }
 
 void CalculateCentral(void)
@@ -212,6 +214,7 @@ void CalculateCentral(void)
 	
 }
 
+/* Sorted the communities' radius. */
 void SortComRadius(double *sortRadius, int *indexRadius)
 {
 	extern int communityNum;
@@ -251,28 +254,17 @@ void CommunityMerge(void)
 
 	// Sorted the communities' radius
 	SortComRadius(sortRadius, indexRadius);
-/*
-	for(i = 0 ; i < communityNum-1 ; i++){
-		for(j = 0 ; j < communityNum-1 ; j++){
-			if(sortRadius[j] > sortRadius[j+1]){
-				tmp = sortRadius[j];			// value exchange
-				sortRadius[j] = sortRadius[j+1];
-				sortRadius[j+1] = tmp;
 
-				itmp = indexRadius[j];			// index exchange
-				indexRadius[j] = indexRadius[j+1];
-				indexRadius[j+1] = itmp;
-			}
-		}
-	}
-*/
 	printf("minimum radius community is %d : %lf\n", indexRadius[0], sortRadius[0]);
 	printf("maxmum radius community is %d : %lf\n", indexRadius[communityNum-1], sortRadius[communityNum-1]);
 
 	// Not Yet Finished...
 	int *mergedMembers;
 	int mergeCount, mergeNumbers, min1, min2;
-	double mergeTime;
+//	double mergeTime;
+	struct Central_Info info;
+	struct Community_Merge *current;
+
 //	while(communityNum > seedNumber){
 	while(1){
 		min1 = indexRadius[0];
@@ -288,11 +280,38 @@ void CommunityMerge(void)
 //		for(i = 0 ; i < mergeNumbers ; i++)
 //			printf("%d ", mergedMembers[i]);
 
-		mergeTime = BruteForce(mergedMembers, mergeNumbers, min1, min2);
-		printf("\nmerge Time : %lf\n", mergeTime);
+		info = BruteForce(mergedMembers, mergeNumbers, min1, min2);
+		printf("\nmerge Time : %lf\n", info.radius);
 		system("read var1");
-		if(mergeTime <= sortRadius[communityNum-1]){
+
+		// if merged radius >= max R(C), then combined these two communities.
+		if(info.radius <= sortRadius[communityNum-1]){
 			// need recontruct the communities and sort the radius again
+			if(CommunityMerged == NULL){			// first one communities merged
+				CommunityMerged = malloc(sizeof(struct Community_Merged));
+				CommunityMerged->ID = communityNum;
+				CommunityMerged->central = info.central;
+				CommunityMerged->child = malloc(2 * sizeof(int));
+				CommunityMerged->child[0] = min1;
+				CommunityMerged->child[1] = min2;
+				CommunityMerged->next = NULL;
+			}
+			else{
+				current = CommuntiyMerged;
+				while(current->next != NULL)
+					current = current->next;
+				// new a communitymerged struct and assign it to current next
+				struct Communtiy_Merge *n = malloc(sizeof(struct Community_Merge));
+				n->ID = current->ID + 1;
+				n->central = info.central;
+				n->child = malloc(2 * sizeof(int));
+				n->child[0] = min1;
+				n->child[1] = min2;
+				n->next = NULL;
+
+				current->next = n;
+			}
+
 			continue;
 		}
 		else

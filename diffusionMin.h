@@ -59,9 +59,24 @@ struct Neighbor_com {
 	struct Neighbor_com *next;
 };
 
+/* Store which communities are merged */
+struct Community_Merge {
+	int ID;
+	int central;
+	int *child;
+	struct Community_Merge *next;
+};
+
+/* Merged Communities some information, used by return multiple value */
+struct Central_Info {
+	int central;
+	double radius;
+};
+
 struct Vertex **Users;						// Store the network graph
 struct VertexLD **UsersLD;					// Store the local diffusion tree
 struct Community **Communities;				// Store the comunities' graph
+struct Community_Merge *CommunityMerged;	// Store which communities are merged
 
 void ReadGraph(char *, char *);				// Read social networks graph
 void InitializeVertices(int);				// Create an array of struct Vertex pointer, which points to each user
