@@ -96,7 +96,7 @@ void ReNormalizeEdgeProbability(void);		// Re normalize edge probability
 void SyncInNeighborWithPro(int, int, double);	
 
 void StoreInfluencer(int, int, double);		// Store each node's influencer into LD tree
-void FindMTPwithTree(int, double);			// Finding the minimum time path to build each node's local diffusion tree with a threshold bound
+double *FindMTPwithTree(int, double);		// Finding the minimum time path to build each node's local diffusion tree with a threshold bound
 int AddCandidate(int *, int);				// union the LD tree as the candidates
 int ChooseCandidates(int, int *);			// select the targets' LD tree as the candidates
 void LD_Tree(int);							// second algorithm to find out the k influential nodes with LD tree approach
@@ -112,6 +112,7 @@ char *targetFeature;						// target feature with features name represent
 char **featuresName;						// store total features' name by scanning "file.featname"
 int *targetUsers;							// store target users whose features have include all query features
 char *allFeatures;							// store all Features
+double **BoundDist;							// store the MTP tree with the bound distance
 /********************************************/
 int communityNum;
 int **comMember;

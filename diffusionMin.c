@@ -11,6 +11,7 @@
 
 void ReadGraph(char *file_edge, char *directory)
 {
+	/* read the social graph with vertices and the relationship between vertices */
 	FILE *fp = fopen(file_edge, "r");
 	char *line = NULL;
 	size_t len = 0;
@@ -28,6 +29,7 @@ void ReadGraph(char *file_edge, char *directory)
 		}
 	}
 
+	/* read the vertices' feature with XX.feat and XX.featnames files */
 	DIR *dp;
 	struct dirent *entry;
 	struct stat statbuf;
@@ -57,7 +59,7 @@ void ReadGraph(char *file_edge, char *directory)
 					firstline = false;
 					totalfeatures = atoi(line);
 //					printf("total features number is %d\n", totalfeatures);
-					StoreFeaturesName(filename);		// read XX.featnames to store each node's feature
+					StoreFeaturesName(filename);				// read XX.featnames to store each node's feature
 					continue;
 				}
 				else {
@@ -83,8 +85,6 @@ void InitializeVertices(int number)
 	printf("%d\n", number);
 	totalvertices = number;
 	Users = malloc(number * sizeof(struct Vertex *));
-
-	return;
 }
 
 /* Include file.edge to store the users' relationship. */
@@ -102,9 +102,6 @@ void StoreRelationship(char *relation)
 	int node1 = atoi(token[0]) % totalvertices;
 	int node2 = atoi(token[1]) % totalvertices;
 	int closeness = atoi(token[2]);
-//	printf("node1 is %d\n", node1);
-//	printf("node2 is %d\n", node2);
-//	printf("closeness is %d\n", closeness);
 	struct Neighbor *current = NULL;
 
 	if(!Users[node1]){
@@ -113,7 +110,6 @@ void StoreRelationship(char *relation)
 		Users[node1]->community = -1;
 		Users[node1]->prev = NULL;
 		Users[node1]->next = NULL;
-//		printf("create node %d\n", node1);
 	}
 	if(!Users[node2]){
 		Users[node2] = malloc(sizeof(struct Vertex));
@@ -121,7 +117,6 @@ void StoreRelationship(char *relation)
 		Users[node2]->community = -1;
 		Users[node2]->prev = NULL;
 		Users[node2]->next = NULL;
-//		printf("create node %d\n", node2);
 	}
 
 	struct Neighbor *out_neighbor = malloc(sizeof(struct Neighbor));
@@ -180,7 +175,7 @@ void NormalizeEdgeWeight(void)
 //		printf("user %d : total weight is %f\n", i, total);
 
 		if(total != 0.0){
-			current = Users[i]->prev;		// u->v , only consider v's in-neighbor.
+			current = Users[i]->prev;									// u->v , only consider v's in-neighbor.
 			current->probability = current->weight/total;
 			SyncOutNeighbor(current->ID, i, current->probability);		// synchronize out neightbor
 //			printf("node %d to node %d probability is %f\n", current->ID, i, current->probability);
@@ -327,7 +322,6 @@ void printPath(int dest, int prev[])
 /* Find minimum time path using dijkstra's algorithm. */
 double *FindMTP(int root, double *dist)
 {
-//	double dist[totalvertices];		// distance from each node to target.
 	bool sptSet[totalvertices];		// shortest path tree Set.
 	int prev[totalvertices];
 	int i, src, count;
@@ -335,7 +329,6 @@ double *FindMTP(int root, double *dist)
 	struct Neighbor *current = NULL;
 
 	src = root;
-//	printf("src is %d\n", src);
 
 	for(i = 0 ; i < totalvertices ; i++){
 		dist[i] = DBL_MAX;
@@ -351,7 +344,6 @@ double *FindMTP(int root, double *dist)
 		min_index = minDistance(dist, sptSet);
 		if(min_index == -1)
 			break;
-//		printf("min index is %d\n", min_index);
 		sptSet[min_index] = true;
 
 		/* Update dist value of the adjacent vertices of the picked vertex. */
@@ -401,9 +393,9 @@ void QueryProcessing(void)
 	printf("(for example : Basketball Curry ...)\n");
 //	scanf("%s", labels);	// use target_labels to replace it temporarily
 
-	seedNumber = 2;
-//	target_labels = "google";
-	target_labels = "basketball curry";
+	seedNumber = 5;
+	target_labels = "google";
+//	target_labels = "basketball curry";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
 
@@ -424,11 +416,7 @@ bool CompareFeatures(char *label)
 	strcpy(tmp, targetFeature);
 	tmp[strlen(targetFeature)] = '\0';
 
-//	printf("\ncompare feature : %s\n", label);
-//	printf("target Feature : %s\n", targetFeature);
-
 	while(token = strtok_r(tmp, " ", &tmp)){
-//		printf("target token : %s\n", token);
 		if(strcasecmp(label, token) == 0){
 			return true;
 		}
@@ -532,15 +520,12 @@ int RecalProbability(void)
 			if(intersections == targetNum){
 				targetUsers[targetCount++] = i;
 				printf("\nuser %d is target !!\n", i);
-	//			if(i == 9953 || i == 75365)
-	//				system("read var1");
 			}
 			if(unions != 0){
 				printf("\n");
 				printf("intersections:%d unions:%d -> %f\n", intersections, unions, (double)intersections/unions);
 				if((double)intersections/unions > 0){
 					voluntary = true;
-//					system("read var1");
 				}
 				else{
 					voluntary = false;
@@ -604,18 +589,18 @@ void ReNormalizeEdgeProbability(void)
 			}
 		}
 
-		printf("user %d : total probability is %f\n", i, total);
+//		printf("user %d : total probability is %f\n", i, total);
 
 		if(total != 0.0){
-			current = Users[i]->prev;		// u->v , only consider v's in-neighbor.
+			current = Users[i]->prev;									// u->v , only consider v's in-neighbor.
 			current->probability = current->probability/total;
 			SyncOutNeighbor(current->ID, i, current->probability);		// synchronize out neightbor
-			printf("\tuser %d to %d -> probability is %f\n", current->ID, i, current->probability);
+//			printf("\tuser %d to %d -> probability is %f\n", current->ID, i, current->probability);
 			while(current->next != NULL){
 				current = current->next;
 				current->probability = current->probability/total;
 				SyncOutNeighbor(current->ID, i, current->probability);
-				printf("\tuser %d to %d -> probability is %f\n", current->ID, i, current->probability);
+//				printf("\tuser %d to %d -> probability is %f\n", current->ID, i, current->probability);
 			}
 		}
 
@@ -649,9 +634,6 @@ int BubbleSort(double *distToTarget, bool end, int size)
 			}
 		}
 	}
-
-//	for(i = 0 ; i < size ; i++)
-//		printf("index %d is %f\n", index[i], distToTarget[i]);
 
 	if(end)
 		return index[size-1];
@@ -747,7 +729,7 @@ void Baseline(int targetCount)
 			if(distToTargets[i][top1] < targets[i])
 				targets[i] = distToTargets[i][top1];
 				diffusionTime = MAX(diffusionTime, targets[i]);
-			printf("top %d to node %d is : %f\n\n", count, targetUsers[i], targets[i]);
+//			printf("top %d to node %d is : %f\n\n", count, targetUsers[i], targets[i]);
 		}
 
 		topk--;
@@ -831,11 +813,11 @@ int main(int argc, char **argv)
 //	printf("Run Baseline Algorithm!\n");
 //	Baseline(targetCount);
 
-//	printf("Run LD Tree Algorithm!\n");
-//	LD_Tree(targetCount);
+	printf("Run LD Tree Algorithm!\n");
+	LD_Tree(targetCount);
 
-	printf("Run Community-based Algorithm\n");
-	Community_based(targetCount);
+//	printf("Run Community-based Algorithm\n");
+//	Community_based(targetCount);
 
 	end = clock();
 	time_spent = (double)(end-begin) / CLOCKS_PER_SEC;

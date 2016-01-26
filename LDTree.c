@@ -14,8 +14,6 @@ void StoreInfluencer(int node, int id, double time)
 	influencer->time = time;
 	influencer->next = NULL;
 	
-//	printf("id is %d\n", UsersLD[node]->ID);
-//	printf("test\n%d\t%f\n", influencer->ID, influencer->time);
 	if(UsersLD[node]->prev != NULL){
 		current = UsersLD[node]->prev;
 		while(current->next != NULL)
@@ -29,14 +27,14 @@ void StoreInfluencer(int node, int id, double time)
 }
 
 /* Finding the minimum time path to build each node's local diffusion tree with a threshold bound. */
-void FindMTPwithTree(int root, double threshold)
+double *FindMTPwithTree(int root, double threshold)
 {
-	double dist[totalvertices];									// distance from each node to target.
-	bool sptSet[totalvertices];									// shortest path tree Set.
-	int prev[totalvertices];									// the previous node
-	int i, src, count;
-	int min_index;
+	double *dist = malloc(totalvertices * sizeof(double));		// distance from each node to target
+	bool *sptSet = malloc(totalvertices * sizeof(bool));		// shortest path tree Set
+	int *prev = malloc(totalvertices * sizeof(int));			// the previous node
+	int i, src, count, min_index;
 	struct Neighbor *current = NULL;
+	double minTime;
 
 	/* intialize userLD[root] */
 	UsersLD[root] = malloc(sizeof(struct VertexLD));
@@ -45,7 +43,6 @@ void FindMTPwithTree(int root, double threshold)
 	UsersLD[root]->prev = NULL;
 
 	src = root;
-//	printf("src is %d\n", src);
 
 	for(i = 0 ; i < totalvertices ; i++){
 		dist[i] = DBL_MAX;
@@ -53,14 +50,13 @@ void FindMTPwithTree(int root, double threshold)
 		sptSet[i] = false;
 	}
 
-	dist[src] = 0;		// Distance of source vertex from itself is 0
+	dist[src] = 0;											// Distance of source vertex from itself is 0
 
 	for(count = 0 ; count < totalvertices-1 ; count++){
 
-		/* Pick the minimum distance from the set of vertices not yet processed. */
-		min_index = minDistance(dist, sptSet);
-//		printf("min index is %d\n", min_index);
-		if(min_index == -1)										// can not find the minimum time vertex, no more visit.
+		min_index = minDistance(dist, sptSet);				// Pick the minimum distance from the set of vertices not yet processed
+
+		if(min_index == -1)									// can not find the minimum time vertex, no more visit.
 			break;
 		sptSet[min_index] = true;
 		if(dist[min_index] < threshold && dist[min_index] != 0)
@@ -69,15 +65,14 @@ void FindMTPwithTree(int root, double threshold)
 		/* Update dist value of the adjacent vertices of the picked vertex. */
 		if(Users[min_index] != NULL && Users[min_index]->prev != NULL){
 			current = Users[min_index]->prev;
-//			double minTime = 1 * 1/current->weight; 			// set propagation probability to 1 as the fastest diffusion time, but this will cause different minimum time path. 
-			double minTime = current->time;
+			minTime = current->time;
 			if(!sptSet[current->ID] && current->time && dist[min_index]!=DBL_MAX && (dist[min_index]+minTime < dist[current->ID]) && (dist[min_index]+minTime < threshold) ){
 				dist[current->ID] = dist[min_index]+minTime;
 				prev[current->ID] = min_index;
 			}	
 			while(current->next != NULL){
 				current = current->next;
-				minTime = 1 * 1/current->weight;
+				minTime = current->time;
 				if(!sptSet[current->ID] && current->time && dist[min_index]!=DBL_MAX && (dist[min_index]+minTime < dist[current->ID]) && (dist[min_index]+minTime < threshold) ){
 					dist[current->ID] = dist[min_index]+minTime;
 					prev[current->ID] = min_index;
@@ -119,9 +114,11 @@ void FindMTPwithTree(int root, double threshold)
 		printf("No local diffusion tree !!\n");
 
 	printf("DONE!\n");
-
 */
-	return;
+	free(sptSet);
+	free(prev);
+
+	return dist;
 }
 
 /* Add the node id into candidates, candidates must be unique. */
@@ -147,7 +144,8 @@ int ChooseCandidates(int targetCount, int *candidates)
 	struct Influencer *current = NULL;
 	int candidatesNum = 0, candidatesTmp;
 
-	memcpy(candidates, targetUsers, totalvertices*sizeof(int));
+	memset(candidates, -1, sizeof(candidates));
+	memcpy(candidates, targetUsers, targetCount * sizeof(int));
 //	for(i = 0 ; i < totalvertices ; i++){
 //		printf("%d ", candidates[i]);
 //	}
@@ -187,7 +185,8 @@ int ChooseCandidatesWithSL(int targetCount, int *candidates)
 	int *hashTable = malloc(totalvertices * sizeof(int));
 
 	memset(hashTable, 0, sizeof(hashTable));
-	memcpy(candidates, targetUsers, totalvertices*sizeof(int));
+	memset(candidates, -1, totalvertices * sizeof(int));
+	memcpy(candidates, targetUsers, targetCount * sizeof(int));
 
 	for(i = 0 ; i < totalvertices ; i++){
 		for(j = 0 ; j < targetCount ; j++){
@@ -201,6 +200,7 @@ int ChooseCandidatesWithSL(int targetCount, int *candidates)
 				continue;
 			else if(level == i){
 				candidatesNum = AddCandidate(candidates, current->ID);
+				printf("Add %d as candidate!\n", current->ID);
 				hashTable[current->ID]++;
 				if(hashTable[current->ID] == targetCount)
 					return candidatesNum;
@@ -263,19 +263,16 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 {
 	int i, j, top1;
 	int topk = seedNumber;
-	int seedSet[seedNumber];
+	int *seedSet = malloc(seedNumber * sizeof(int));
 	bool best = true;
 	double diffusionTime;
 
-	/* create a 2D array distToTargets[eachTarget][totalvertices] */
-	double **distToTargets = malloc(targetCount * sizeof(double *));
+	double **distToTargets = malloc(targetCount * sizeof(double *));	// create a 2D array distToTargets[eachTarget][totalvertices]
 	double *firstRound = malloc(candidatesNum * sizeof(double));		// store max time of each candidate to targets
 	double *targets = malloc(targetCount * sizeof(double));				// the minimum time to arrive each target
+	double *eachReduce = malloc(candidatesNum * sizeof(double));		// store each candidate to target causes the diffusion time less
 
-	/* store each candidate to target causes the diffusion time less */
-	double *eachReduce = malloc(candidatesNum * sizeof(double));		
-
-	/*	initialize targets array, distToTargets array, firstRound array, eachReduce array. */
+	/*	initialize targets array, distToTargets array, firstRound array, eachReduce array and seedSet */
 	for(i = 0 ; i < targetCount ; i++){
 		targets[i] = DBL_MAX;
 		distToTargets[i] = malloc(totalvertices * sizeof(double));
@@ -286,7 +283,7 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 		firstRound[i] = -1;
 		eachReduce[i] = 0;
 	}
-	memset(seedSet, -1, sizeof(seedSet));					// initialize seedSet
+	memset(seedSet, -1, sizeof(seedSet));
 
 	/* Get the first seed. Then get the next seed by recording the marginal gain of each candidate. */
 	int count = 0;
@@ -295,7 +292,7 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 		best = true;														// check the diffusion time has improved or not
 
 		for(i = 0 ; i < targetCount ; i++){
-			distToTargets[i] = FindMTP(targetUsers[i], distToTargets[i]);	// calculate the time of each node to the target
+			distToTargets[i] = BoundDist[i];								// the time of each node to the target
 			for(j = 0 ; j < candidatesNum ; j++){
 				if(count == 0){
 					firstRound[j] = MAX(firstRound[j], distToTargets[i][candidates[j]]);
@@ -333,7 +330,7 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 			if(distToTargets[i][top1] < targets[i])
 				targets[i] = distToTargets[i][top1];
 				diffusionTime = MAX(diffusionTime, targets[i]);
-			printf("top %d to node %d is : %f\n\n", count, targetUsers[i], targets[i]);
+//			printf("top %d to node %d is : %f\n\n", count, targetUsers[i], targets[i]);
 		}
 
 		topk--;
@@ -353,21 +350,23 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 void LD_Tree(int targetCount)
 {
 	int i = 0, j;
-//	double threshold = 0.22;
-	double threshold = 1;
+//	double threshold = 0.1;
+	double threshold = 2;
 	int *candidates = malloc(totalvertices * sizeof(int));
 	int candidatesNum;
 
 	/* initialize vertex with local diffusion tree */	
 	UsersLD = malloc(totalvertices * sizeof(struct VertexLD *));
+	BoundDist = malloc(targetCount * sizeof(double *));
 
 	while(targetUsers[i] != -1){
-		FindMTPwithTree(targetUsers[i], threshold);
+		BoundDist[i] = malloc(totalvertices * sizeof(double));
+		BoundDist[i] = FindMTPwithTree(targetUsers[i], threshold);
 		i++;
 	}
 
 	/* union the LD tree as the candidates */
-	candidatesNum = ChooseCandidates(targetCount, candidates);
+//	candidatesNum = ChooseCandidates(targetCount, candidates);
 
 	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
 
