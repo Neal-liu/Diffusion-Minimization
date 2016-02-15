@@ -64,6 +64,7 @@ struct Neighbor_com {
 struct Community_Merge {
 	int ID;
 	int central;
+	double radius;
 	int *child;
 	struct Community_Merge *next;
 };
@@ -109,9 +110,9 @@ void Community_based(int);
 
 char *dataset;								// name of the dataset
 char *directory;							// name of the dataset directory
-int totalvertices;							// number of total users
-int totalfeatures;							// number of total features
-int seedNumber;								// number of influential nodes
+int totalvertices;							// numbers of total users
+int totalfeatures;							// numbers of total features
+int seedNumber;								// numbers of influential nodes
 //int *targetFeature;							// target feature with 0 and 1 to represent
 char *targetFeature;						// target feature with features name represent
 char **featuresName;						// store total features' name by scanning "file.featname"
@@ -119,9 +120,9 @@ int *targetUsers;							// store target users whose features have include all qu
 char *allFeatures;							// store all Features
 double **BoundDist;							// store the MTP tree with the bound distance
 /********************************************/
-int communityNum;
-int **comMember;
-int *eachComNumber;
+int communityNum;							// numbers of communities
+int **comMember;							// store each community's members
+int *eachComNumber;							// store each community's number
 clock_t begin, end;							// calcuate the execution time of the program
 
 #endif

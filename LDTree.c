@@ -254,7 +254,7 @@ bool isBlock(int targetID, int candidateID, int *seedSet)
 
 	bool match = MeetSeed(targetID, candidateID, seedSet);
 	if(match){
-		printf("\nBlock!!\n");
+//		printf("\nBlock!!\n");
 		return true;
 	}
 	else
@@ -355,6 +355,7 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 
 		topk--;
 
+		fprintf(f, "top%d", count);
 		fprintf(f, "\nseed set are : \n\t");
 		for(i = 0 ; i < count ; i++)
 			fprintf(f, "%d ", seedSet[i]);

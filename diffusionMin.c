@@ -394,7 +394,7 @@ void QueryProcessing(char *number)
 
 	seedNumber = atoi(number);
 	target_labels = "google";
-	//target_labels = "basketball curry";
+//	target_labels = "basketball curry";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
 
