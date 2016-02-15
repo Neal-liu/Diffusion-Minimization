@@ -4,3 +4,9 @@ seed set are :
 54549 78785 226
 Diffusion Time is 11.017544
 execution time : 23422.554307
+
+threshold: 234
+	seed set are :
+		54549 78785 226
+	Diffusion Time is 11.017544
+	execution time : 3843.131491

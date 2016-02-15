@@ -21,6 +21,7 @@ void InitialCommunities(void)
 		Communities[i]->closely = malloc(communityNum * sizeof(int));
 		for(j = 0 ; j < communityNum ; j++)
 			Communities[i]->closely[j] = -1;
+		Communities[i]->merged = false;
 		Communities[i]->next = NULL;
 	}
 
@@ -258,21 +259,24 @@ void CommunityMerge(void)
 	printf("minimum radius community is %d : %lf\n", indexRadius[0], sortRadius[0]);
 	printf("maxmum radius community is %d : %lf\n", indexRadius[communityNum-1], sortRadius[communityNum-1]);
 
-	// Not Yet Finished...
 	int *mergedMembers;
 	int mergeCount, mergeNumbers, min1, min2;
-//	double mergeTime;
 	struct Central_Info info;
 	struct Community_Merge *current;
+	double maxRadius;
+	bool first = true;
 
 //	while(communityNum > seedNumber){
 	while(1){
+		// put values in sortRadius and indexRadius array , and SortComRadius in here.
+
 		min1 = indexRadius[0];
 		min2 = Communities[indexRadius[0]]->closely[0];
 		printf("min1 %d min2 %d\n", min1, min2);
 		mergeNumbers = eachComNumber[min1] + eachComNumber[min2];
 		mergedMembers = malloc(mergeNumbers * sizeof(int));
 		mergeCount = 0;
+
 		for(i = 0 ; comMember[min1][i] != -1 ; i++)
 			mergedMembers[mergeCount++] = comMember[min1][i];
 		for(i = 0 ; comMember[min2][i] != -1 ; i++)
@@ -284,8 +288,15 @@ void CommunityMerge(void)
 		printf("\nmerge Time : %lf\n", info.radius);
 		system("read var1");
 
-		// if merged radius >= max R(C), then combined these two communities.
-		if(info.radius <= sortRadius[communityNum-1]){
+		if(first){
+			first = false;
+			maxRadius = sortRadius[communityNum-1];
+		}
+		// if merged radius <= max R(C), then combined these two communities.
+		if(info.radius <= maxRadius){
+			Communities[min1]->merged = true;
+			Communities[min2]->merged = true;
+			
 			// need recontruct the communities and sort the radius again
 			if(CommunityMerged == NULL){			// first one communities merged
 				CommunityMerged = malloc(sizeof(struct Community_Merged));

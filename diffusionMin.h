@@ -48,6 +48,7 @@ struct Community {
 	int central;
 	double radius;
 	int *closely;
+	bool merged;
 	struct Neighbor_com *next;
 };
 
@@ -78,7 +79,7 @@ struct VertexLD **UsersLD;					// Store the local diffusion tree
 struct Community **Communities;				// Store the comunities' graph
 struct Community_Merge *CommunityMerged;	// Store which communities are merged
 
-void ReadGraph(char *, char *);				// Read social networks graph
+void ReadGraph(const char *, const char *);	// Read social networks graph
 void InitializeVertices(int);				// Create an array of struct Vertex pointer, which points to each user
 void StoreRelationship(char *);				// Include "file.edge" to store the users' relationship
 void NormalizeEdgeWeight(void);				// Normalize edge weight with w(u,v)/d(v) as the propagation probability
@@ -86,17 +87,21 @@ void StoreFeatures(char *);					// Store every vertex's feature in their struct
 void SyncOutNeighbor(int ,int, double);
 void SyncInNeighbor(int ,int, double);
 void DiffusionTime(void);					// Compute the diffusion time with 1/probability * 1/weight
+int minDistance(double *, bool *);			// Pick the minimum distance from the set of vertices not yet processed
 double *FindMTP(int, double *);				// Find minimum time path using dijkstra's algorithm
 void printGraph(void);
 
-void QueryProcessing(void);					// Processing the query set, including k influential nodes and targets features
+void QueryProcessing(char *);				// Processing the query set, including k influential nodes and targets features
 bool CompareFeatures(char *);				// Compare the label is matched with targetFeature or not
 void StoreFeaturesName(char *);				// Initialize the feature array 
 void ReNormalizeEdgeProbability(void);		// Re normalize edge probability
 void SyncInNeighborWithPro(int, int, double);	
+int BubbleSort(double *, bool, int);		// Sort the distToTarget array using bubble sort. 	
+bool isInclude(int, int *);					// "node" is include seedset or not
+double *InitializeEachReduce(double *, int);
 
 void StoreInfluencer(int, int, double);		// Store each node's influencer into LD tree
-double *FindMTPwithTree(int, double);		// Finding the minimum time path to build each node's local diffusion tree with a threshold bound
+void FindMTPwithTree(int, double, int);		// Finding the minimum time path to build each node's local diffusion tree with a threshold bound
 int AddCandidate(int *, int);				// union the LD tree as the candidates
 int ChooseCandidates(int, int *);			// select the targets' LD tree as the candidates
 void LD_Tree(int);							// second algorithm to find out the k influential nodes with LD tree approach
@@ -117,6 +122,7 @@ double **BoundDist;							// store the MTP tree with the bound distance
 int communityNum;
 int **comMember;
 int *eachComNumber;
+clock_t begin, end;							// calcuate the execution time of the program
 
 #endif
 

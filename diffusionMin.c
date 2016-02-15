@@ -9,7 +9,7 @@
 #include <time.h>
 #include "diffusionMin.h"
 
-void ReadGraph(char *file_edge, char *directory)
+void ReadGraph(const char * const file_edge, const char * const directory)
 {
 	/* read the social graph with vertices and the relationship between vertices */
 	FILE *fp = fopen(file_edge, "r");
@@ -33,15 +33,18 @@ void ReadGraph(char *file_edge, char *directory)
 	DIR *dp;
 	struct dirent *entry;
 	struct stat statbuf;
-	int length, depth = 0;
-	char *filename;
-	char *dir = directory;
+	int length;
+	char *filename = NULL;
+	const char *dir = directory;
 
 	if((dp = opendir(dir)) == NULL) {
 		fprintf(stderr,"cannot open directory: %s\n", dir);
 		return;
 	}
-	chdir(dir);
+	if(chdir(dir) == -1){
+		printf("invalid directory\n");
+		exit(1);
+	}
 	communityNum = 0;
 	while((entry = readdir(dp)) != NULL) {
 		lstat(entry->d_name,&statbuf);
@@ -71,7 +74,10 @@ void ReadGraph(char *file_edge, char *directory)
 		}
 
 	}
-	chdir("..");
+	if(chdir("..") == -1){
+		printf("invalid directory!\n");
+		exit(1);
+	}
 	free(filename);
 	closedir(dp);
 	fclose(fp);
@@ -226,10 +232,9 @@ void SyncInNeighbor(int u, int v, double time)
 /* Store every vertex's feature in their struct. */
 void StoreFeatures(char *features)
 {
-	int i, value;
+	int i, count = 0;
 	char *featurestmp = malloc((strlen(features)+1) * sizeof(char));
 	int node = atoi(features) % totalvertices;
-	int count = 0;
 
 	strcpy(featurestmp, features);
 	featurestmp[strlen(features)] = '\0';
@@ -244,7 +249,6 @@ void StoreFeatures(char *features)
 		printf("duplicate features !!\n");
 		return;
 	}
-//	printf("\n");
 	
 	free(Users[node]->feature);
 	Users[node]->feature = malloc(totalfeatures * sizeof(char *));
@@ -291,8 +295,6 @@ void DiffusionTime(void)
 			}
 		}
 	}
-
-	return;
 }
 
 /* Pick the minimum distance from the set of vertices not yet processed. */
@@ -322,8 +324,8 @@ void printPath(int dest, int prev[])
 /* Find minimum time path using dijkstra's algorithm. */
 double *FindMTP(int root, double *dist)
 {
-	bool sptSet[totalvertices];		// shortest path tree Set.
-	int prev[totalvertices];
+	bool *sptSet = malloc(totalvertices * sizeof(bool));		// shortest path tree Set
+	int *prev = malloc(totalvertices * sizeof(int));			// the previous node
 	int i, src, count;
 	int min_index;
 	struct Neighbor *current = NULL;
@@ -379,12 +381,9 @@ double *FindMTP(int root, double *dist)
 }
 
 /* On query processing, split the query, get the k influential nodes and the target features. */
-void QueryProcessing(void)
+void QueryProcessing(char *number)
 {
 	char *target_labels;	// total target labels
-	char *label;			// single label
-	char *saveptr;			// used in strtok_r() in order to maintain context between successive calls that parse the same string.
-	int index, i;
 
 	printf("Features : %s\n", allFeatures);
 	printf("Input k : \n");
@@ -393,9 +392,9 @@ void QueryProcessing(void)
 	printf("(for example : Basketball Curry ...)\n");
 //	scanf("%s", labels);	// use target_labels to replace it temporarily
 
-	seedNumber = 5;
+	seedNumber = atoi(number);
 	target_labels = "google";
-//	target_labels = "basketball curry";
+	//target_labels = "basketball curry";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
 
@@ -410,13 +409,12 @@ void QueryProcessing(void)
 /* Compare the "label" is matched with targetFeature or not, and return true if matches. */
 bool CompareFeatures(char *label)
 {
-	int i;
-	char *token;
+	char *token = NULL;
 	char *tmp = malloc((strlen(targetFeature)+1) * sizeof(char));
 	strcpy(tmp, targetFeature);
 	tmp[strlen(targetFeature)] = '\0';
 
-	while(token = strtok_r(tmp, " ", &tmp)){
+	while((token = strtok_r(tmp, " ", &tmp)) != NULL){
 		if(strcasecmp(label, token) == 0){
 			return true;
 		}
@@ -433,7 +431,7 @@ void StoreFeaturesName(char *file_featnames)
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read;
-	int count = 0, i = 0;
+	int count = 0;
 
 	free(featuresName);
 	featuresName = malloc((totalfeatures+1) * sizeof(char *));
@@ -483,8 +481,7 @@ int RecalProbability(void)
 
 	printf("Re calculate edge probability... \n");
 
-//	if(!targetUsers)
-		targetUsers = malloc(totalvertices * sizeof(int));
+	targetUsers = malloc(totalvertices * sizeof(int));
 
 	char *tmp = malloc((strlen(targetFeature)+1) * sizeof(char));
 	strcpy(tmp, targetFeature);
@@ -789,7 +786,7 @@ void printGraph(void)
 int main(int argc, char **argv)
 {
 	int targetCount;
-	clock_t begin, end;
+	extern clock_t begin, end;
 	double time_spent;
 
 	dataset = malloc((strlen(argv[1])+1) * sizeof(char));
@@ -802,7 +799,7 @@ int main(int argc, char **argv)
 
 	begin = clock();
 
-	QueryProcessing();
+	QueryProcessing(argv[3]);
 	targetCount = RecalProbability();
 	ReNormalizeEdgeProbability();
 	DiffusionTime();
