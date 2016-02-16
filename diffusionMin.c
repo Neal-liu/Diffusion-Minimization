@@ -393,8 +393,8 @@ void QueryProcessing(char *number)
 //	scanf("%s", labels);	// use target_labels to replace it temporarily
 
 	seedNumber = atoi(number);
-	target_labels = "google";
-//	target_labels = "basketball curry";
+//	target_labels = "google";
+	target_labels = "basketball curry";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
 
@@ -810,11 +810,11 @@ int main(int argc, char **argv)
 //	printf("Run Baseline Algorithm!\n");
 //	Baseline(targetCount);
 
-	printf("Run LD Tree Algorithm!\n");
-	LD_Tree(targetCount);
+//	printf("Run LD Tree Algorithm!\n");
+//	LD_Tree(targetCount);
 
-//	printf("Run Community-based Algorithm\n");
-//	Community_based(targetCount);
+	printf("Run Community-based Algorithm\n");
+	Community_based(targetCount);
 
 	end = clock();
 	time_spent = (double)(end-begin) / CLOCKS_PER_SEC;

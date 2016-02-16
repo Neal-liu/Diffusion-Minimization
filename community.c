@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "diffusionMin.h"
+#include "util.h"
 
 /* Initialize Communities' structure. */
 void InitialCommunities(void)
@@ -20,10 +21,12 @@ void InitialCommunities(void)
 		Communities[i]->degree = 0;
 		Communities[i]->central = -1;
 		Communities[i]->radius = 0.0;
+		Communities[i]->topk = 1;
 		Communities[i]->closely = malloc(communityNum * sizeof(int));
 		for(j = 0 ; j < communityNum ; j++)
 			Communities[i]->closely[j] = -1;
 		Communities[i]->merged = false;
+		Communities[i]->parent = false;
 		Communities[i]->next = NULL;
 	}
 
@@ -33,7 +36,7 @@ void InitialCommunities(void)
 /* Calculate the closely connected communities. */
 void Closely(void)
 {
-	int i, j, count;
+	int i, count;
 	struct Neighbor *current = NULL;
 	struct Neighbor_com *current_com = NULL;
 	double average, tmp;
@@ -101,8 +104,10 @@ void Closely(void)
 */
 	/* calculate the closely connected communities */
 	for(i = 0 ; i < communityNum ; i++){
-		if(Communities[i]->degree == 0)
+		if(Communities[i]->degree == 0){
+			printf("%d : No closely connected communities.\n", i);
 			continue;
+		}
 		current_com = Communities[i]->next;
 		average = Communities[i]->weight/Communities[i]->degree;
 		count = 0;
@@ -123,13 +128,11 @@ void Closely(void)
 	return ;
 }
 
-bool isIncludeCom(int node, int *comMembers)
+bool isIncludeCom(int node, int *comMembers, int number)
 {
-	int count = 0;
-	while(comMembers[count] != -1){
-		if(node == comMembers[count])
+	for(int i = 0 ; i < number ; i++){
+		if(node == comMembers[i])
 			return true;
-		count++;
 	}
 	return false;
 }
@@ -155,7 +158,7 @@ struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int c
 		distToTargets[i] = FindMTP(comMembers[i], distToTargets[i]);
 		count = 0;
 		for(j = 0 ; j < totalvertices ; j++){
-			if(Users[j] != NULL && isIncludeCom(Users[j]->ID, comMembers)){
+			if(Users[j] != NULL && isIncludeCom(Users[j]->ID, comMembers, number)){
 				maxTime[count] = MAX(maxTime[count], distToTargets[i][j]);
 				maxTimeID[count] = Users[j]->ID;
 				count++;
@@ -167,9 +170,17 @@ struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int c
 	central = BubbleSort(maxTime, false, number);
 	printf("\ncentral node is %d : %lf\n", maxTimeID[central], maxTime[0]);
 //	printf("central node is %d : %lf\n", comMembers[central], maxTime[0]);
+
+	// calculate only one community's central node
 	if(comIndex2 == -1){
 		Communities[comIndex1]->central = comMembers[central];
 		Communities[comIndex1]->radius = maxTime[0];
+	}
+	else if(comIndex2 == -2){
+//		central = BubbleSort2();
+		printf("\ncentral node is %d : %lf\n", maxTimeID[central], maxTime[1]);
+		struct Central_Info info = {maxTimeID[central], maxTime[1]}; 
+		return info;
 	}
 
 	struct Central_Info info = {maxTimeID[central], maxTime[0]}; 
@@ -241,15 +252,15 @@ void CommunityMerge(void)
 	extern int communityNum;
 	extern int *eachComNumber;
 	extern int **comMember;
-	double tmp, maxRadius;
-	int i, j, itmp, mergeCount, mergeNumbers, min1, min2, count = 0;
-	int communityNum
+	double maxRadius;
+	int i, mergeCount, mergeNumbers, min1, min2, count = 0;
+//	int communityNum;
 	struct Central_Info info;
 	struct Community_Merge *current;
 	bool first = true;
 
-	while(communityNum > seedNumber){
-//	while(1){
+//	while(communityNum > seedNumber){
+	while(1){
 		// put values in sortRadius and indexRadius array , and SortComRadius in here.
 		double *sortRadius = malloc(communityNum * sizeof(double));
 		int *indexRadius = malloc(communityNum * sizeof(int));
@@ -281,25 +292,27 @@ void CommunityMerge(void)
 			mergedMembers[mergeCount++] = comMember[min1][i];
 		for(i = 0 ; comMember[min2][i] != -1 ; i++)
 			mergedMembers[mergeCount++] = comMember[min2][i];
+		
+//		printf("merged members : \n\t");
 //		for(i = 0 ; i < mergeNumbers ; i++)
 //			printf("%d ", mergedMembers[i]);
 
 		info = BruteForce(mergedMembers, mergeNumbers, min1, min2);
 		printf("\nmerge Time : %lf\n", info.radius);
-		system("read var1");
+		if(system("read var1") == -1) err("system pause error!\n");
 
 		if(first){
 			first = false;
 			maxRadius = sortRadius[communityNum-1];
 		}
 		// if merged radius <= max R(C), then combined these two communities.
-		if(info.radius <= maxRadius){
+		if(info.radius < maxRadius){
 			Communities[min1]->merged = true;
 			Communities[min2]->merged = true;
 			
 			// need recontruct the communities and sort the radius again
 			if(CommunityMerged == NULL){			// first one communities merged
-				CommunityMerged = malloc(sizeof(struct Community_Merged));
+				CommunityMerged = malloc(sizeof(struct Community_Merge));
 				CommunityMerged->ID = communityNum;
 				CommunityMerged->central = info.central;
 				CommunityMerged->radius = info.radius;
@@ -310,11 +323,11 @@ void CommunityMerge(void)
 				current = CommunityMerged;
 			}
 			else{
-				current = CommuntiyMerged;
+				current = CommunityMerged;
 				while(current->next != NULL)
 					current = current->next;
 				// new a communitymerged struct and assign it to current next
-				struct Communtiy_Merge *n = malloc(sizeof(struct Community_Merge));
+				struct Community_Merge *n = malloc(sizeof(struct Community_Merge));
 				n->ID = current->ID + 1;
 				n->central = info.central;
 				n->radius = info.radius;
@@ -349,7 +362,7 @@ void UpdateCommunities(int communityNum, struct Community_Merge *current)
 	extern struct Community **Communities;
 	int count = 0;
 
-	Communities = realloc(communityNum * sizeof(struct Community *));
+	Communities = realloc(Communities, communityNum * sizeof(struct Community *));
 	Communities[communityNum-1] = malloc(sizeof(struct Community));
 	Communities[communityNum-1]->ID = current->ID;
 	Communities[communityNum-1]->weight = Communities[current->child[0]]->weight + Communities[current->child[1]]->weight;
@@ -357,77 +370,224 @@ void UpdateCommunities(int communityNum, struct Community_Merge *current)
 	Communities[communityNum-1]->central = current->central;
 	Communities[communityNum-1]->radius = current->radius;
 	Communities[communityNum-1]->closely = malloc(communityNum * sizeof(int));
-	for(j = 0 ; j < communityNum ; j++)
+	for(int j = 0 ; j < communityNum ; j++)
 		Communities[communityNum-1]->closely[j] = -1;
 	Communities[communityNum-1]->merged = false;
+	Communities[communityNum-1]->parent = true;
 	Communities[communityNum-1]->next = NULL;
 
 	// merged Communtity's neighbors are its children's neighbor (only two)
 	struct Neighbor_com *merged = Communities[communityNum-1]->next;
-//	struct Neighbor_com *cur1 = Communities[current->child[0]]->next;
-//	struct Neighbor_com *cur2 = Communities[current->child[1]]->next;
+	bool found = false;
 
 	for(int i = 0 ; i < 2 ; i++){
 		struct Neighbor_com *cur = Communities[current->child[i]]->next;
 		while(cur != NULL){
+			struct Neighbor_com *out = malloc(sizeof(struct Neighbor_com));
+			out->ID = cur->ID;
+			out->weight = cur->weight;
+			out->degree = cur->degree;
+			out->next = NULL;
+
+			found = false;
 			merged = Communities[communityNum-1]->next;
-			while(merged != NULL){
-				if(merged->ID == cur->ID)
-					break;
-				else
-					merged = merged->next;
-			}
-
 			if(merged == NULL){
-				struct Neighbor_com *out = malloc(sizeof(struct Neighbor_com));
-				out->ID = cur->ID;
-				out->weight = cur->weight;
-				out->degree = cur->degree;
-				out->next = NULL;
-				merged = out;
-
-				cur = cur->next;
-				continue;
+				Communities[communityNum-1]->next = out;
 			}
-			else if(merged->ID == cur->ID){
-				cur->cur->next;
-				continue;
+			else{
+				if(merged->ID == cur->ID){
+					cur = cur->next;
+					continue;
+				}
+				while(merged->next != NULL){
+					merged = merged->next;
+					if(merged->ID == cur->ID){
+						found = true;
+						break;
+					}
+				}
+				if(found){
+					cur = cur->next;
+					continue;
+				}
+				else
+					merged->next = out;
 			}
+			cur = cur->next;
 		}
 	}
 
-	// update closely
+	// update closely. Need update all communities because the merged communities could effect other communities.
+	// update communities->next, too.
 	double average , tmp;
 
-	merged = Communities[communityNum-1]->next;
-	average = Communities[communityNum-1]->weight/Communities[communityNum-1]->degree;
-	count = 0;
-	printf("%d : average is %lf\n", i, average);
-	while(merged != NULL){
-		tmp = merged->weight/merged->degree;
-		if(average <= tmp){
-			while(Communities[communityNum-1]->closely[count] != -1)
-				count++;
-			Communities[communityNum-1]->closely[count] = merged->ID;
-			printf("\t closely community : %d\n", merged->ID);
+	// delete merged children from other communities->next
+	DeleteChildUpdate(current);
+
+	for(int i = 0 ; i < communityNum ; i++){
+		if(Communities[i]->merged){
+			printf("%d : I have been merged, not my business.\n", i);
+			continue;
 		}
-		merged = merged->next;
+		else if(Communities[i]->degree == 0){
+			printf("%d : No closely connected communities.\n", i);
+			continue;
+		}
+		merged = Communities[i]->next;
+		average = Communities[i]->weight/Communities[i]->degree;
+		count = 0;
+		printf("%d : average is %lf\n", i, average);
+		memset(Communities[i]->closely, -1, sizeof(*Communities[i]->closely));
+		while(merged != NULL){
+			if(!Communities[merged->ID]->merged){
+				tmp = merged->weight/merged->degree;
+				if(average <= tmp){
+					while(Communities[i]->closely[count] != -1)
+						count++;
+					Communities[i]->closely[count] = merged->ID;
+					printf("\t closely community : %d\n", merged->ID);
+				}
+			}
+			merged = merged->next;
+		}
+	}
+}
+
+void DeleteChildUpdate(struct Community_Merge *cur)
+{
+	int child1 = cur->child[0];
+	int child2 = cur->child[1];
+	bool update = false;	
+
+	for(int i = 0 ; i < communityNum-1 ; i++){
+		struct Neighbor_com *current = Communities[i]->next;
+		struct Neighbor_com *previous = NULL;
+		update = false;
+
+		while(current != NULL){
+			if(current->ID == child1 || current->ID == child2){
+				update = true;
+				if(previous == NULL){
+					current = current->next;
+					Communities[i]->next = current;
+				}
+				else{
+					previous->next = current->next;
+					current = previous->next;
+				}
+			}
+			else{
+				previous = current;
+				current = current->next;
+			}
+		}
+
+		if(update){
+			struct Neighbor_com *new = malloc(sizeof(struct Neighbor_com));
+			new->ID = Communities[communityNum-1]->ID;
+			new->weight = Communities[communityNum-1]->weight;
+			new->degree = Communities[communityNum-1]->degree;
+			new->next = NULL;
+
+			current = Communities[i]->next;
+			if(current == NULL){
+				Communities[i]->next = new;
+			}
+			else{
+				while(current->next != NULL)
+					current = current->next;
+				current->next = new;
+			}
+		}
 	}
 
+/*
+	for(int i = 0 ; i < communityNum ; i++){
+		struct Neighbor_com *current = Communities[i]->next;
+		printf("community %d :\n", i);
+		while(current != NULL){
+			printf("next is %d\n", current->ID);
+			current = current->next;
+		}
+	}
+*/
 }
 
 void UpdatecomMember(int *mergedMembers, int mergeNumbers)
 {
-	extern **comMember;
+	extern int **comMember;
 	
-	comMember = realloc(communityNum * sizeof(int *));
+	comMember = realloc(comMember, communityNum * sizeof(int *));
 	comMember[communityNum-1] = malloc(totalvertices * sizeof(int));
-	for(int i = 0 ; i < mergeNumbers ; i++)
+	for(int i = 0 ; i < totalvertices ; i++)	// initialize
+		comMember[communityNum-1][i] = -1;
+	for(int i = 0 ; i < mergeNumbers ; i++){
 		comMember[communityNum-1][i] = mergedMembers[i];
-
+//		printf("each comMember : %d\n", comMember[communityNum-1][i]);
+	}
 }
 
+void PickSeeds(void)
+{
+	extern struct Community_Merge *CommunityMerged;
+	extern struct Community **Communities;
+	struct Central_Info info;
+	double *sortRadius = malloc(communityNum * sizeof(double));
+	int *indexRadius = malloc(communityNum * sizeof(int));
+	int seedCount = 0, maxRadiusIndex;
+	int *seedSet = malloc(seedNumber * sizeof(int));
 
+	memset(seedSet, -1, sizeof(*seedSet));
+	memset(sortRadius, -1, sizeof(*sortRadius));
+	
+	for(int i = 0 ; i < communityNum ; i++){
+		if(!Communities[i]->merged){
+			seedSet[seedCount++] = Communities[i]->central;
+			sortRadius[i] = Communities[i]->radius;
+		}
+		else
+			sortRadius[i] = -1;			
+		indexRadius[i] = i;
+	}
+
+	while(seedCount < seedNumber){
+
+		// Sorted the communities' radius
+		SortComRadius(sortRadius, indexRadius);
+		printf("maxmum radius community is %d : %lf\n", indexRadius[communityNum-1], sortRadius[communityNum-1]);
+		maxRadiusIndex = indexRadius[communityNum-1];
+
+		// pick its children's central nodes
+		if(Communities[maxRadiusIndex]->parent){
+			struct Community_Merge *current = CommunityMerged;
+			while(current != NULL && current->ID != Communities[maxRadiusIndex]->ID){
+				current = current->next;
+			}
+			seedSet[seedCount++] = Communities[current->child[0]]->central;
+			Communities[current->child[0]]->merged = false;
+			seedSet[seedCount++] = Communities[current->child[1]]->central;
+			Communities[current->child[1]]->merged = false;
+			
+		}
+		// Not Yet Finished
+		else{
+			// this community maybe pick more than 2 seeds
+			int topk = -(Communities[maxRadiusIndex]->topk+1);
+			info = BruteForce(comMember[maxRadiusIndex], eachComNumber[maxRadiusIndex], maxRadiusIndex, topk);
+			seedSet[seedCount++] = info.central;
+			// update communitiy's radius
+			Communities[maxRadiusIndex]->radius = info.radius;
+		}
+
+		for(int i = 0 ; i < communityNum ; i++){
+			if(!Communities[i]->merged)
+				sortRadius[i] = Communities[i]->radius;
+			else
+				sortRadius[i] = -1;			
+			indexRadius[i] = i;
+		}
+	}
+}
 
 void Community_based(int targetCount)
 {
@@ -437,4 +597,5 @@ void Community_based(int targetCount)
 	CalculateCentral();
 	CommunityMerge();
 	PickSeeds();
+	// pick seeds and calculate diffusion time.
 }

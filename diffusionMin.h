@@ -49,6 +49,8 @@ struct Community {
 	double radius;
 	int *closely;
 	bool merged;
+	bool parent;
+	int topk;
 	struct Neighbor_com *next;
 };
 
@@ -107,6 +109,9 @@ int AddCandidate(int *, int);				// union the LD tree as the candidates
 int ChooseCandidates(int, int *);			// select the targets' LD tree as the candidates
 void LD_Tree(int);							// second algorithm to find out the k influential nodes with LD tree approach
 void Community_based(int);
+void UpdateCommunities(int, struct Community_Merge *);
+void UpdatecomMember(int *, int);
+void DeleteChildUpdate(struct Community_Merge *);
 
 char *dataset;								// name of the dataset
 char *directory;							// name of the dataset directory
