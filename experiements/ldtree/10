@@ -1,0 +1,52 @@
+number of candidates : 752
+number of targets : 289
+top1
+seed set are : 
+	54549 
+Diffusion Time is 233.604978
+execution time : 3829.856703
+top2
+seed set are : 
+	54549 78785 
+Diffusion Time is 11.541693
+execution time : 3829.905689
+top3
+seed set are : 
+	54549 78785 226 
+Diffusion Time is 11.017544
+execution time : 3829.954626
+top4
+seed set are : 
+	54549 78785 226 15481 
+Diffusion Time is 3.574300
+execution time : 3830.003297
+top5
+seed set are : 
+	54549 78785 226 15481 19357 
+Diffusion Time is 3.574300
+execution time : 3830.051959
+top6
+seed set are : 
+	54549 78785 226 15481 19357 72091 
+Diffusion Time is 3.574300
+execution time : 3830.100727
+top7
+seed set are : 
+	54549 78785 226 15481 19357 72091 43231 
+Diffusion Time is 3.574300
+execution time : 3830.149541
+top8
+seed set are : 
+	54549 78785 226 15481 19357 72091 43231 9222 
+Diffusion Time is 3.574300
+execution time : 3830.198065
+top9
+seed set are : 
+	54549 78785 226 15481 19357 72091 43231 9222 7698 
+Diffusion Time is 3.574300
+execution time : 3830.246501
+top10
+seed set are : 
+	54549 78785 226 15481 19357 72091 43231 9222 7698 51795 
+Diffusion Time is 3.574300
+execution time : 3830.294912

@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include "diffusionMin.h"
+#include "util.h"
 
 void ReadGraph(const char * const file_edge, const char * const directory)
 {
@@ -664,7 +665,8 @@ void Baseline(int targetCount)
 	int topk = seedNumber;
 	int seedSet[seedNumber];
 	bool best = true;
-	double diffusionTime = 0.0;
+	double diffusionTime = 0.0, time_spent;
+	extern clock_t begin, end;
 
 	/* create a 2D array distToTargets[eachTarget][eachNode] */
 	double **distToTargets = malloc(targetCount * sizeof(double *));
@@ -686,8 +688,12 @@ void Baseline(int targetCount)
 		firstRound[i] = -1;
 		eachReduce[i] = 0;
 	}
-	memset(seedSet, -1, sizeof(seedSet));
+	memset(seedSet, -1, seedNumber * sizeof(int));
 	
+	FILE *f = write_file("result");
+	if(f == NULL) err("Couldn't open file.\n");
+	fprintf(f, "number of targets : %d\n", targetCount);
+
 	/* Get the first seed. Then get the next seed by recording the marginal gain of each node. */
 	int count = 0;
 	while(topk > 0){
@@ -709,8 +715,8 @@ void Baseline(int targetCount)
 				}
 			}
 		}
-
-		if(best){															// if there is no node has contribution , then quit the algorithm.
+		// if there is no node has contribution , then quit the algorithm.
+		if(best){															
 			printf("No more seeds !!\nIt's the shortest diffusion time !!\n");
 			break;
 		}
@@ -725,11 +731,20 @@ void Baseline(int targetCount)
 		for(i = 0 ; i < targetCount ; i++){
 			if(distToTargets[i][top1] < targets[i])
 				targets[i] = distToTargets[i][top1];
-				diffusionTime = MAX(diffusionTime, targets[i]);
+			diffusionTime = MAX(diffusionTime, targets[i]);
 //			printf("top %d to node %d is : %f\n\n", count, targetUsers[i], targets[i]);
 		}
 
 		topk--;
+		fprintf(f, "top%d", count);
+		fprintf(f, "\nseed set are : \n\t");
+		for(i = 0 ; i < count ; i++)
+			fprintf(f, "%d ", seedSet[i]);
+		fprintf(f, "\nDiffusion Time is %lf\n", diffusionTime);
+
+		end = clock();
+		time_spent = (double)(end-begin) / CLOCKS_PER_SEC;
+		fprintf(f, "execution time : %f\n", time_spent);
 	}
 
 	printf("targets are : \n");
@@ -740,6 +755,7 @@ void Baseline(int targetCount)
 		printf("%d ", seedSet[i]);
 	printf("\nDiffusion Time is %lf\n", diffusionTime);
 
+	fclose(f);
 	return;
 }
 
