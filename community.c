@@ -2,6 +2,7 @@
 #include <float.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "diffusionMin.h"
 #include "util.h"
 
@@ -21,7 +22,7 @@ void InitialCommunities(void)
 		Communities[i]->degree = 0;
 		Communities[i]->central = -1;
 		Communities[i]->radius = 0.0;
-		Communities[i]->topk = 1;
+		Communities[i]->topk = 0;
 		Communities[i]->closely = malloc(communityNum * sizeof(int));
 		for(j = 0 ; j < communityNum ; j++)
 			Communities[i]->closely[j] = -1;
@@ -41,6 +42,7 @@ void Closely(void)
 	extern struct Community **Communities;
 	extern int communityNum;
 
+	puts("Calculate the closely connected communities...\n");
 	/* count the edge weight and edge degree between communities */
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL && Users[i]->community != -1){
@@ -154,7 +156,7 @@ struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int c
 		distToTargets[i] = malloc(totalvertices * sizeof(double));
 		maxTime[i] = -1;
 		eachReduce[i] = 0;
-		for(j = 0 ; j < totalvertices ; j++)
+		for(int j = 0 ; j < totalvertices ; j++)
 			distToTargets[i][j] = -1;
 	}
 	memset(seedSet, -1, seedNumber * sizeof(int));
@@ -198,8 +200,8 @@ struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int c
 
 		seedSet[seedCount++] = maxTimeID[central];
 		diffusionTime = 0.0;
-		printf("top %d is %d\n", seedCount, maxTimeID[central]);
-		for(i = 0 ; i < number ; i++){
+//		printf("top %d is %d\n", seedCount, maxTimeID[central]);
+		for(int i = 0 ; i < number ; i++){
 			for(int j = 0 ; j < totalvertices ; j++){
 				if(Users[j] != NULL && Users[j]->ID == maxTimeID[central]){
 //					printf("node %d to node %d is %lf\n", Users[j]->ID, comMembers[i], distToTargets[i][j]);
@@ -235,6 +237,11 @@ struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int c
 		info.radius = diffusionTime;
 	}
 
+	free(distToTargets);
+	free(maxTime);
+	free(eachReduce);
+	free(maxTimeID);
+	free(seedSet);
 	return info;
 }
 
@@ -249,6 +256,7 @@ void CalculateCentral(void)
 	comMember = malloc(communityNum * sizeof(int *));
 	eachComNumber = malloc(communityNum * sizeof(int));
 
+	puts("Calculate each community's central node...\n");
 	// declaration of comMember
 	for(i = 0 ; i < communityNum ; i++){
 		comMember[i] = malloc(totalvertices * sizeof(int));
@@ -259,15 +267,15 @@ void CalculateCentral(void)
 	// find members for each community
 	for(i = 0 ; i < communityNum ; i++){
 		count = 0;
-		printf("community : %d\n", i);
 		for(j = 0 ; j < totalvertices ; j++){
 			if(Users[j] != NULL && Users[j]->community == i){
 				comMember[i][count] = Users[j]->ID;
-				printf("member : %d\n", Users[j]->ID);
+//				printf("member : %d\n", Users[j]->ID);
 				count++;
 			}
 		}
 		eachComNumber[i] = count;
+		printf("community %d : %d\n", i, eachComNumber[i]);
 	}
 
 	for(i = 0 ; i < communityNum ; i++)
@@ -280,10 +288,10 @@ void SortComRadius(double *sortRadius, int *indexRadius)
 {
 	extern int communityNum;
 	double tmp;
-	int i, j, itmp;
+	int itmp;
 
-	for(i = 0 ; i < communityNum-1 ; i++){
-		for(j = 0 ; j < communityNum-1 ; j++){
+	for(int i = 0 ; i < communityNum-1 ; i++){
+		for(int j = 0 ; j < communityNum-1 ; j++){
 			if(sortRadius[j] > sortRadius[j+1]){
 				tmp = sortRadius[j];			// value exchange
 				sortRadius[j] = sortRadius[j+1];
@@ -308,13 +316,13 @@ void CommunityMerge(void)
 	extern int **comMember;
 	double maxRadius;
 	int i, mergeCount, mergeNumbers, min1, min2, count = 0;
-//	int communityNum;
 	struct Central_Info info;
 	struct Community_Merge *current;
 	bool first = true;
 
-	while(communityNum > seedNumber){
-//	while(1){
+	puts("Access community merged...\n");
+//	while(communityNum > seedNumber){
+	while(1){
 		// put values in sortRadius and indexRadius array , and SortComRadius in here.
 		double *sortRadius = malloc(communityNum * sizeof(double));
 		int *indexRadius = malloc(communityNum * sizeof(int));
@@ -349,14 +357,15 @@ void CommunityMerge(void)
 		
 		info = BruteForce(mergedMembers, mergeNumbers, min1, min2);
 		printf("\nmerge Time : %lf\n", info.radius);
-		if(system("read var1") == -1) err("system pause error!\n");
+//		if(system("read var1") == -1) err("system pause error!\n");
 
 		if(first){
 			first = false;
 			maxRadius = sortRadius[communityNum-1];
 		}
 		// if merged radius <= max R(C), then combined these two communities.
-		if(info.radius < maxRadius){
+		if(info.radius <= maxRadius && info.radius != DBL_MAX){
+			printf("Start merging...\n");
 			Communities[min1]->merged = true;
 			Communities[min2]->merged = true;
 			
@@ -426,6 +435,7 @@ void UpdateCommunities(int communityNum, struct Community_Merge *current)
 		Communities[communityNum-1]->closely[j] = -1;
 	Communities[communityNum-1]->merged = false;
 	Communities[communityNum-1]->parent = true;
+	Communities[communityNum-1]->topk = 0;
 	Communities[communityNum-1]->next = NULL;
 
 	// merged Communtity's neighbors are its children's neighbor (only two)
@@ -489,7 +499,7 @@ void UpdateCommunities(int communityNum, struct Community_Merge *current)
 		average = Communities[i]->weight/Communities[i]->degree;
 		count = 0;
 		printf("%d : average is %lf\n", i, average);
-		memset(Communities[i]->closely, -1, sizeof(*Communities[i]->closely));
+		memset(Communities[i]->closely, -1, communityNum * sizeof(int));
 		while(merged != NULL){
 			if(!Communities[merged->ID]->merged){
 				tmp = merged->weight/merged->degree;
@@ -590,6 +600,8 @@ int *PickSeeds(void)
 {
 	extern struct Community_Merge *CommunityMerged;
 	extern struct Community **Communities;
+	extern int seedNumber;
+	extern int communityNum;
 	struct Central_Info info;
 	double *sortRadius = malloc(communityNum * sizeof(double));
 	int *indexRadius = malloc(communityNum * sizeof(int));
@@ -610,8 +622,12 @@ int *PickSeeds(void)
 		indexRadius[i] = i;
 	}
 
+	printf("Start picking seeds...\n");
+	if(seedCount >= seedNumber){
+		printf("Need more than %d seeds.\n", seedCount);
+		seedNumber = seedCount;
+	}
 	while(seedCount < seedNumber){
-
 		// Sorted the communities' radius
 		SortComRadius(sortRadius, indexRadius);
 		printf("maxmum radius community is %d : %lf\n", indexRadius[communityNum-1], sortRadius[communityNum-1]);
@@ -641,6 +657,8 @@ int *PickSeeds(void)
 			seedSet[seedCount++] = Communities[current->child[1]]->central;
 			Communities[current->child[0]]->merged = false;
 			Communities[current->child[1]]->merged = false;
+			Communities[current->child[0]]->topk = 1;
+			Communities[current->child[1]]->topk = 1;
 			printf("pick %d as seeds.\n", Communities[current->child[0]]->central);
 			printf("pick %d as seeds.\n", Communities[current->child[1]]->central);
 
@@ -650,11 +668,16 @@ int *PickSeeds(void)
 			// this community maybe pick more than 2 seeds
 			Communities[maxRadiusIndex]->topk += 1;
 			int topk = -(Communities[maxRadiusIndex]->topk);
-			info = BruteForce(comMember[maxRadiusIndex], eachComNumber[maxRadiusIndex], maxRadiusIndex, topk);
+			if(topk == -1){
+				info.central = Communities[maxRadiusIndex]->central;
+			}
+			else{	
+				info = BruteForce(comMember[maxRadiusIndex], eachComNumber[maxRadiusIndex], maxRadiusIndex, topk);
+				// update community's radius
+				Communities[maxRadiusIndex]->radius = info.radius;
+			}
 			seedSet[seedCount++] = info.central;
 			printf("pick %d as seeds.\n", info.central);
-			// update community's radius
-			Communities[maxRadiusIndex]->radius = info.radius;
 		}
 
 		for(int i = 0 ; i < communityNum ; i++){
@@ -666,12 +689,16 @@ int *PickSeeds(void)
 		}
 //		if(system("read var1") == -1) err("system pause error!\n");
 	}
-
+	printf("Seedset are : \n\t");
+	for(int i = 0 ; i < seedCount ; i++){
+		printf("%d ", seedSet[i]);
+	}
+	puts("\n");
 	return seedSet;
 }
 
 /* Calculate the diffusion time from seeds to targets. */
-void DiffusionFromSeeds(int *seedSet, int targetCount)
+double DiffusionFromSeeds(int *seedSet, int targetCount)
 {
 	double **distToTargets = malloc(targetCount * sizeof(double *));
 	double *minTime = malloc(targetCount * sizeof(double));
@@ -698,13 +725,18 @@ void DiffusionFromSeeds(int *seedSet, int targetCount)
 	for(int i = 0 ; i < targetCount ; i++){
 		diffusionTime = MAX(diffusionTime, minTime[i]);
 	}
-	printf("Total diffusionTime is %lf\n", diffusionTime);
+//	printf("Total diffusionTime is %lf\n", diffusionTime);
+	free(distToTargets);
+	free(minTime);;
+	return diffusionTime;
 }
 
 void Community_based(int targetCount)
 {
 	int *seedSet = malloc(seedNumber * sizeof(int));
 	memset(seedSet, -1, seedNumber * sizeof(int));	
+	double time_spent;
+	extern clock_t begin, end;
 
 	// Initialize the communities' structure
 	InitialCommunities();
@@ -713,10 +745,26 @@ void Community_based(int targetCount)
 	CommunityMerge();
 	// pick seeds and calculate diffusion time.
 	seedSet = PickSeeds();
-	DiffusionFromSeeds(seedSet, targetCount);
+	double time = DiffusionFromSeeds(seedSet, targetCount);
 
+	printf("targets are : \n");
+	for(int i = 0 ; i < targetCount ; i++)
+		printf("%d ", targetUsers[i]);
+	FILE *f = write_file("result");
+	if(f == NULL) err("Couldn't open file.\n");
+	fprintf(f, "numbers of targets : %d\n", targetCount);
+	printf("\nnumbers of targets : %d\n", targetCount);
+	printf("numbers of seeds : %d\n", seedNumber);
 	printf("Seedset are : \n\t");
-	for(int i = 0 ; i < seedNumber ; i++)
+	fprintf(f, "Seedset are : \n\t");
+	for(int i = 0 ; i < seedNumber ; i++){
 		printf("%d ", seedSet[i]);
-	puts("\n");
+		fprintf(f, "%d ", seedSet[i]);
+	}
+	printf("\nTotal diffusion time is %lf\n", time);
+	fprintf(f, "\nTotal diffusion time is %lf\n", time);
+	end = clock();
+	time_spent = (double)(end-begin) / CLOCKS_PER_SEC;
+	fprintf(f, "execution time : %f\n", time_spent);
+	fclose(f);
 }

@@ -378,6 +378,8 @@ double *FindMTP(int root, double *dist)
 //		printf("\n");
 //	}
 
+	free(sptSet);
+	free(prev);
 	return dist;
 }
 
@@ -394,8 +396,9 @@ void QueryProcessing(char *number)
 //	scanf("%s", labels);	// use target_labels to replace it temporarily
 
 	seedNumber = atoi(number);
+	target_labels = "0";
 //	target_labels = "google";
-	target_labels = "basketball curry";
+//	target_labels = "basketball curry";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
 
@@ -727,7 +730,7 @@ void Baseline(int targetCount)
 			
 		seedSet[count++] = top1;											// store top1 to seed set
 		diffusionTime = 0.0;
-		printf("top %d is %d\n", count, top1);
+//		printf("top %d is %d\n", count, top1);
 		for(i = 0 ; i < targetCount ; i++){
 			if(distToTargets[i][top1] < targets[i])
 				targets[i] = distToTargets[i][top1];
@@ -756,6 +759,10 @@ void Baseline(int targetCount)
 	printf("\nDiffusion Time is %lf\n", diffusionTime);
 
 	fclose(f);
+	free(distToTargets);
+	free(firstRound);
+	free(targets);
+	free(eachReduce);
 	return;
 }
 

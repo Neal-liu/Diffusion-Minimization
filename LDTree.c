@@ -103,13 +103,14 @@ void FindMTPwithTree(int root, double threshold, int order)
 		printf("\n");
 	}
 
+	printf("root is %d\n", root);
 	printf("Local Diffusion Tree :\n");
 	if(UsersLD[root]->prev){
 		struct Influencer *currents = UsersLD[root]->prev;
 		printf("prev id is %d\n", currents->ID);
 		printf("\ttime is %f\n", currents->time);
 
-		while(currents->next != NULL){
+		while(currents->next != NULL && currents->ID != 0){
 			currents = currents->next;
 			printf("prev id is %d\n", currents->ID);
 			printf("\ttime is %f\n", currents->time);
@@ -119,6 +120,7 @@ void FindMTPwithTree(int root, double threshold, int order)
 		printf("No local diffusion tree !!\n");
 
 	printf("DONE!\n");
+	if(system("read var1") == -1) err("system pause error!\n");
 */
 	free(sptSet);
 	free(prev);
@@ -186,12 +188,13 @@ int ChooseCandidatesWithSL(int targetCount, int *candidates)
 	int i, j;
 	int level = 0;
 	struct Influencer *current = NULL;
-	int candidatesNum = 0;
+	int candidatesNum = 0, candidatesTmp;
 	int *hashTable = malloc(totalvertices * sizeof(int));
 
 	memset(hashTable, 0, totalvertices * sizeof(int));
 	memset(candidates, -1, totalvertices * sizeof(int));
 	memcpy(candidates, targetUsers, targetCount * sizeof(int));
+	candidatesNum = targetCount;
 
 	for(i = 0 ; i < totalvertices ; i++){
 		for(j = 0 ; j < targetCount ; j++){
@@ -204,8 +207,9 @@ int ChooseCandidatesWithSL(int targetCount, int *candidates)
 			if(current == NULL)
 				continue;
 			else if(level == i){
-				candidatesNum = AddCandidate(candidates, current->ID);
-//				printf("Add %d as candidate!\n", current->ID);
+				candidatesTmp = AddCandidate(candidates, current->ID);
+				candidatesNum = MAX(candidatesNum, candidatesTmp);
+				printf("Add %d as candidate!\n", current->ID);
 				hashTable[current->ID]++;
 				if(hashTable[current->ID] == targetCount)
 					return candidatesNum;
@@ -264,7 +268,7 @@ bool isBlock(int targetID, int candidateID, int *seedSet)
 
 void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 {
-	int i, j, top1, bottom1;
+	int i, j, top1;
 	int topk = seedNumber;
 	int *seedSet = malloc(seedNumber * sizeof(int));
 	bool best = true;
@@ -326,19 +330,8 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 			printf("No more seeds !!\nIt's the shortest diffusion time !!\n");
 			break;
 		}
-		if(count == 0){
+		if(count == 0)
 			top1 = BubbleSort(firstRound, false, candidatesNum);
-			bottom1 = BubbleSort(firstRound, true, candidatesNum);
-//			printf("top1 candidates : %d\n", candidates[top1]);
-//			printf("bottom1 candidates : %d\n", candidates[bottom1]);
-			for(i = 0 ; i < targetCount ; i++){
-				if(distToTargets[i][candidates[bottom1]] == DBL_MAX){
-					printf("No seed will spread to the all targets !!\n");
-					topk = 0;
-					break;
-				}
-			}
-		}
 		else
 			top1 = BubbleSort(eachReduce, true, candidatesNum);
 			
@@ -380,8 +373,8 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 void LD_Tree(int targetCount)
 {
 	int i = 0;
-//	double threshold = 1.0;
-	double threshold = 234;
+	double threshold = 1.0;
+//	double threshold = 234;
 	int *candidates = malloc(totalvertices * sizeof(int));
 	int candidatesNum;
 
@@ -400,9 +393,10 @@ void LD_Tree(int targetCount)
 	if(candidatesNum == 0)
 		candidatesNum = ChooseCandidates(targetCount, candidates);
 
-	printf("\n");
+	printf("\nnumbers of candidates : %d\n", candidatesNum);
 	for(i = 0 ; i < totalvertices ; i++){
-		printf("%d ", candidates[i]);
+		if(candidates[i] != -1)
+			printf("%d ", candidates[i]);
 	}
 
 	FindSeeds(targetCount, candidates, candidatesNum);
