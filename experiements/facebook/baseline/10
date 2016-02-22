@@ -1,0 +1,51 @@
+number of targets : 81
+top1
+seed set are : 
+	0 
+Diffusion Time is 0.558183
+execution time : 0.167507
+top2
+seed set are : 
+	0 414 
+Diffusion Time is 0.558183
+execution time : 0.227241
+top3
+seed set are : 
+	0 414 3437 
+Diffusion Time is 0.335765
+execution time : 0.287120
+top4
+seed set are : 
+	0 414 3437 348 
+Diffusion Time is 0.296442
+execution time : 0.346808
+top5
+seed set are : 
+	0 414 3437 348 500 
+Diffusion Time is 0.296176
+execution time : 0.406211
+top6
+seed set are : 
+	0 414 3437 348 500 609 
+Diffusion Time is 0.296176
+execution time : 0.465595
+top7
+seed set are : 
+	0 414 3437 348 500 609 630 
+Diffusion Time is 0.296176
+execution time : 0.524969
+top8
+seed set are : 
+	0 414 3437 348 500 609 630 1482 
+Diffusion Time is 0.245457
+execution time : 0.584350
+top9
+seed set are : 
+	0 414 3437 348 500 609 630 1482 643 
+Diffusion Time is 0.245457
+execution time : 0.643720
+top10
+seed set are : 
+	0 414 3437 348 500 609 630 1482 643 355 
+Diffusion Time is 0.245457
+execution time : 0.703436
