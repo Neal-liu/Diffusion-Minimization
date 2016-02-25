@@ -9,72 +9,72 @@
 
 /* Each vertex's structure */
 struct Vertex {
-	int ID;
-	int *label;
-	char **feature;
-	int community;
-	struct Neighbor *prev;
-	struct Neighbor *next;
+    int ID;
+    int *label;
+    char **feature;
+    int community;
+    struct Neighbor *prev;
+    struct Neighbor *next;
 };
 
 /* Each vertex's neighbor, no matter in-neighbor or out-neighbor */
 struct Neighbor {
-	int ID;
-	double weight;
-	double probability;
-	double time;
-	struct Neighbor *next;
+    int ID;
+    double weight;
+    double probability;
+    double time;
+    struct Neighbor *next;
 };
 
 /* Each vertex's local diffusion tree */
 struct VertexLD {
-	int ID;
-	int *prevPath;
-	struct Influencer *prev;
+    int ID;
+    int *prevPath;
+    struct Influencer *prev;
 };
 
 /* Each vertex's influencer, including in-neighbors and in-neighbors' neighbor, ... */
 struct Influencer {
-	int ID;
-	double time;
-	struct Influencer *next;
+    int ID;
+    double time;
+    struct Influencer *next;
 };
 
 /* Each community's structure */
 struct Community {
-	int ID;
-	double weight;
-	int degree;
-	int central;
-	double radius;
-	int *closely;
-	bool merged;
-	bool parent;
-	int topk;
-	struct Neighbor_com *next;
+    int ID;
+    double weight;
+    int degree;
+    int central;
+    double radius;
+    int *closely;
+    bool merged;
+    bool parent;
+    int topk;
+    struct Neighbor_com *next;
 };
 
 /* Each community's out-neighbor */
 struct Neighbor_com {
-	int ID;
-	double weight;
-	int degree;
-	struct Neighbor_com *next;
+    int ID;
+    double weight;
+    int degree;
+    struct Neighbor_com *next;
 };
 
 /* Store which communities are merged */
 struct Community_Merge {
-	int ID;
-	int central;
-	double radius;
-	int *child;
-	struct Community_Merge *next;
+    int ID;
+    int central;
+    double radius;
+    int *child;
+    struct Community_Merge *next;
 };
 
 /* Merged Communities some information, used by return multiple value */
 struct Central_Info {
-	int central;
-	double radius;
+    int central;
+    double radius;
 };
 
 struct Vertex **Users;						// Store the network graph
@@ -96,10 +96,10 @@ void printGraph(void);
 
 void QueryProcessing(char *);				// Processing the query set, including k influential nodes and targets features
 bool CompareFeatures(char *);				// Compare the label is matched with targetFeature or not
-void StoreFeaturesName(char *);				// Initialize the feature array 
+void StoreFeaturesName(char *);				// Initialize the feature array
 void ReNormalizeEdgeProbability(void);		// Re normalize edge probability
-void SyncInNeighborWithPro(int, int, double);	
-int BubbleSort(double *, bool, int);		// Sort the distToTarget array using bubble sort. 	
+void SyncInNeighborWithPro(int, int, double);
+int BubbleSort(double *, bool, int);		// Sort the distToTarget array using bubble sort.
 bool isInclude(int, int *);					// "node" is include seedset or not
 double *InitializeEachReduce(double *, int);
 
