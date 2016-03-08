@@ -8,73 +8,81 @@
 #define MIN(X, Y) ( X < Y ? X : Y)
 
 /* Each vertex's structure */
-struct Vertex {
-    int ID;
-    int *label;
-    char **feature;
-    int community;
-    struct Neighbor *prev;
-    struct Neighbor *next;
+struct Vertex
+{
+	int ID;
+	int *label;
+	char **feature;
+	int community;
+	struct Neighbor *prev;
+	struct Neighbor *next;
 };
 
 /* Each vertex's neighbor, no matter in-neighbor or out-neighbor */
-struct Neighbor {
-    int ID;
-    double weight;
-    double probability;
-    double time;
-    struct Neighbor *next;
+struct Neighbor
+{
+	int ID;
+	double weight;
+	double probability;
+	double time;
+	struct Neighbor *next;
 };
 
 /* Each vertex's local diffusion tree */
-struct VertexLD {
-    int ID;
-    int *prevPath;
-    struct Influencer *prev;
+struct VertexLD
+{
+	int ID;
+	int *prevPath;
+	struct Influencer *prev;
 };
 
 /* Each vertex's influencer, including in-neighbors and in-neighbors' neighbor, ... */
-struct Influencer {
-    int ID;
-    double time;
-    struct Influencer *next;
+struct Influencer
+{
+	int ID;
+	double time;
+	struct Influencer *next;
 };
 
 /* Each community's structure */
-struct Community {
-    int ID;
-    double weight;
-    int degree;
-    int central;
-    double radius;
-    int *closely;
-    bool merged;
-    bool parent;
-    int topk;
-    struct Neighbor_com *next;
+struct Community
+{
+	int ID;
+	double weight;
+	int degree;
+	int central;
+	double radius;
+	int *closely;
+	bool merged;
+	bool parent;
+	int topk;
+	struct Neighbor_com *next;
 };
 
 /* Each community's out-neighbor */
-struct Neighbor_com {
-    int ID;
-    double weight;
-    int degree;
-    struct Neighbor_com *next;
+struct Neighbor_com
+{
+	int ID;
+	double weight;
+	int degree;
+	struct Neighbor_com *next;
 };
 
 /* Store which communities are merged */
-struct Community_Merge {
-    int ID;
-    int central;
-    double radius;
-    int *child;
-    struct Community_Merge *next;
+struct Community_Merge
+{
+	int ID;
+	int central;
+	double radius;
+	int *child;
+	struct Community_Merge *next;
 };
 
 /* Merged Communities some information, used by return multiple value */
-struct Central_Info {
-    int central;
-    double radius;
+struct Central_Info
+{
+	int central;
+	double radius;
 };
 
 struct Vertex **Users;						// Store the network graph
@@ -83,6 +91,7 @@ struct Community **Communities;				// Store the comunities' graph
 struct Community_Merge *CommunityMerged;	// Store which communities are merged
 
 void ReadGraph(const char *, const char *);	// Read social networks graph
+void StoreCommunity(char *, int);			// Store each node's community
 void InitializeVertices(int);				// Create an array of struct Vertex pointer, which points to each user
 void StoreRelationship(char *);				// Include "file.edge" to store the users' relationship
 void NormalizeEdgeWeight(void);				// Normalize edge weight with w(u,v)/d(v) as the propagation probability
