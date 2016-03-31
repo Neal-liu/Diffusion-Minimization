@@ -341,6 +341,8 @@ void CommunityMerge(void)
 
 		while(sortRadius[count] == -1)
 			count++;
+		if(count == communityNum-1)		// only one community, then stop
+			break;
 		printf("minimum radius community is %d : %lf\n", indexRadius[count], sortRadius[count]);
 		printf("maxmum radius community is %d : %lf\n", indexRadius[communityNum-1], sortRadius[communityNum-1]);
 

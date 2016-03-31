@@ -162,14 +162,14 @@ int ChooseCandidates(int targetCount, int *candidates)
 	for(i = 0 ; i < targetCount ; i++){
 		current = UsersLD[targetUsers[i]]->prev;
 		if(current != NULL){
-			printf("\ntarget %d is %d\n", i, targetUsers[i]);
-			printf("its tree is : %d ", current->ID);
+//			printf("\ntarget %d is %d\n", i, targetUsers[i]);
+//			printf("its tree is : %d ", current->ID);
 			candidatesTmp = AddCandidate(candidates, current->ID);
 			candidatesNum = MAX(candidatesNum, candidatesTmp);
 
 			while(current->next != NULL){
 				current = current->next;
-				printf("%d ", current->ID);
+//				printf("%d ", current->ID);
 				candidatesTmp = AddCandidate(candidates, current->ID);
 				candidatesNum = MAX(candidatesNum, candidatesTmp);
 			}
@@ -209,7 +209,7 @@ int ChooseCandidatesWithSL(int targetCount, int *candidates)
 			else if(level == i){
 				candidatesTmp = AddCandidate(candidates, current->ID);
 				candidatesNum = MAX(candidatesNum, candidatesTmp);
-				printf("Add %d as candidate!\n", current->ID);
+//				printf("Add %d as candidate!\n", current->ID);
 				hashTable[current->ID]++;
 				if(hashTable[current->ID] == targetCount)
 					return candidatesNum;
@@ -375,7 +375,7 @@ void LD_Tree(int targetCount)
 {
 	int i = 0;
 //    double threshold = 1.0;
-	double threshold = 234;
+	double threshold = (seedNumber-1)*(1/0.000084)*1;
 	int *candidates = malloc(totalvertices * sizeof(int));
 	int candidatesNum;
 
@@ -384,15 +384,24 @@ void LD_Tree(int targetCount)
 	BoundDist = malloc(targetCount * sizeof(double *));
 
 	while(targetUsers[i] != -1){
+		printf("target : %d\n", targetUsers[i]);
 		BoundDist[i] = malloc(totalvertices * sizeof(double));
 		FindMTPwithTree(targetUsers[i], threshold, i);
 		i++;
 	}
 
-	/* union the LD tree as the candidates */
+	printf("threshold is : %lf\n", threshold);
+	printf("target number is : %d\n", targetCount);
+	candidatesNum = ChooseCandidates(targetCount, candidates);
+	printf("candidatesNum is : %d\n", candidatesNum);
 	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
-	if(candidatesNum == 0)
-		candidatesNum = ChooseCandidates(targetCount, candidates);
+	printf("candidatesNum is : %d\n", candidatesNum);
+	if(system("read var1") != -1)	err("system error!!\n");
+	return;
+	/* union the LD tree as the candidates */
+//	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
+//	if(candidatesNum == 0)
+//		candidatesNum = ChooseCandidates(targetCount, candidates);
 
 	printf("\nnumbers of candidates : %d\n", candidatesNum);
 	for(i = 0 ; i < totalvertices ; i++){

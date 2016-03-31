@@ -18,15 +18,19 @@ synthetic2:
 	./diffusion ./syntheticData/synthetic2.edge ~/graph-tool/syntheticData 1
 
 twitter:
-	for i in 1 2 3 4 5 10 20 30 40 50 60 80 100 150 200 300 400 500 ; do \
+	./diffusion ./realData/twitter/twitterWithEdge.edge ~/graph-tool/realData/twitter 10 ;
+#	for i in 1 2 3 4 5 10 20 30 40 50 60 80 100 150 200 300 400 500 ; do \
 		./diffusion ./realData/twitter/twitterWithEdge.edge ~/graph-tool/realData/twitter $$i ; \
 		mv realData/result experiements/twitter/baseline/youtube/$$i ; \
 	done
 	
 facebook:
-	for i in 300 ; do \
-		./diffusion ./realData/facebook/facebookWithEdge.edge ~/graph-tool/realData/facebook $$i ; \
-		mv realData/result experiements/facebook/community/$$i.2 ; \
+	./diffusion ./realData/facebook/facebookWithEdge.edge ~/graph-tool/realData/facebook 10 ;
+#	for j in 1 ; do \
+		for i in 300 400 500 ; do \
+			./diffusion ./realData/facebook/facebookWithEdge.edge ~/graph-tool/realData/facebook $$i ; \
+			mv realData/result experiements/facebook/community/feature0/$$i.$$j ; \
+		done \
 	done
 	
 gplus:
@@ -38,16 +42,17 @@ gplus:
 #	done
 
 epinions:
-	for i in 1 2 3 4 5 10 20 30 40 50 60 80 100 ; do \
-		./diffusion ./realData/epinions/epinionsWithEdge.edge ~/graph-tool/realData/epinions $$i ; \
-		mv realData/result experiements/epinions/baseline/youtube/$$i ; \
-	done
+		for i in 20 40 60 80 100 150 200; do \
+			./diffusion ./realData/epinions/epinionsWithEdge.edge ~/graph-tool/realData/epinions $$i ; \
+			mv realData/result experiements/epinions/community/google/$$i ; \
+		done
 
 wiki:
-	for j in 10 20 30 40 50 60 70 80 90 100 150 200 250 300 350 400 450 500 ; do \
+	./diffusion ./realData/wikiVote/wikiVoteWithEdge.edge ~/graph-tool/realData/wikiVote 10 ;
+#	for j in 10 20 30 40 50 60 80 100 150 200 ; do \
 		./diffusion ./realData/wikiVote/wikiVoteWithEdge.edge ~/graph-tool/realData/wikiVote $$j ; \
-		mv realData/result experiements/wikiVote/community/$$j ; \
-	done
+		mv realData/result experiements/wikiVote/communtiy/youtube/$$j ; \
+	done 
 
 clean:
 	rm -f diffusion

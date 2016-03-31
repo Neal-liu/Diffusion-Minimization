@@ -37,7 +37,6 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 	DIR *dp;
 	struct dirent *entry;
 	struct stat statbuf;
-//	int comTmp = 0;
 	int length = 0;
 	char *filename = NULL;
 //	char *filename = NULL, *token1 = NULL, *token2 = NULL;
@@ -80,6 +79,8 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 	}
 
 /*
+	int comTmp = 0;
+	char *token1 = NULL, *token2 = NULL;
 	// another way to read community
 	rewinddir(dp);
 	printf("Read communities.txt file...\n");
@@ -446,7 +447,6 @@ void QueryProcessing(char *number)
 {
 	char *target_labels;	// total target labels
 
-	printf("Features : %s\n", allFeatures);
 	printf("Input k : \n");
 //	scanf("%d", &seedNumber);
 	printf("Input specific targets using attributes with blank to separate : \n");
@@ -454,12 +454,12 @@ void QueryProcessing(char *number)
 //	scanf("%s", labels);	// use target_labels to replace it temporarily
 
 	seedNumber = atoi(number);
-//	target_labels = "0";
-//	target_labels = "google";
-	target_labels = "youtube";
+
+//	target_labels = "startup 0";
+	target_labels = "google";
+//	target_labels = "google youtube";
 //	target_labels = "basketball curry";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
-
 
 	targetFeature = malloc(strlen(target_labels) * sizeof(char));
 	strncpy(targetFeature, target_labels, strlen(target_labels));
@@ -544,6 +544,7 @@ int RecalProbability(void)
 	printf("Re calculate edge probability... \n");
 
 	targetUsers = malloc(totalvertices * sizeof(int));
+	memset(targetUsers, -1, totalvertices * sizeof(int));
 
 	char *tmp = malloc((strlen(targetFeature)+1) * sizeof(char));
 	strcpy(tmp, targetFeature);
@@ -553,13 +554,13 @@ int RecalProbability(void)
 		targetNum++;
 		label = strtok(NULL, " ");
 	}
-	printf("targetNum is %d\n", targetNum);
+//	printf("targetNum is %d\n", targetNum);
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL){
 //			printf("user %d : \n", i);
 			intersections = 0;
 			unions = 0;
-			targetUsers[i] = -1;
+//			targetUsers[i] = -1;
 			j = 0;
 			if(Users[i]->label != NULL){
 				while(Users[i]->feature[j] != NULL){
@@ -580,14 +581,13 @@ int RecalProbability(void)
 				printf("\nuser %d is target !!\n", i);
 			}
 			if(unions != 0){
-				printf("\n");
-				printf("intersections:%d unions:%d -> %f\n", intersections, unions, (double)intersections/unions);
+//				printf("\nintersections:%d unions:%d -> %f\n", intersections, unions, (double)intersections/unions);
 				if((double)intersections/unions > 0){
 					voluntary = true;
 				}
 				else{
 					voluntary = false;
-					printf("No need to update !\n");
+//					printf("No need to update !\n");
 				}
 
 				current = Users[i]->next;
@@ -606,7 +606,8 @@ int RecalProbability(void)
 	}
 
 	if(targetCount == 0)
-		err("Targets are not found !!\n");
+		puts("Targets are not found !!\n");
+//		err("Targets are not found !!\n");
 
 //	printf("target number is : %d\n", targetCount);
 //	if(system("read var1") == -1)	err("system error!\n");
@@ -871,6 +872,24 @@ void printGraph(void)
 	return;
 }
 
+void CalMinPro(void)
+{
+	double minimum = DBL_MAX;
+	double maximum = 0.0;
+	struct Neighbor *current = NULL;
+	
+	for(int i = 0 ; i < totalvertices && Users[i] != NULL ; i++){
+		if(Users[i]->next != NULL){
+			current = Users[i]->next;
+			maximum = MAX(current->probability, maximum);
+			minimum = MIN(current->probability, minimum);
+		}
+	}
+	printf("minimum prbability is : %lf\n", minimum);
+	printf("maximum prbability is : %lf\n", maximum);
+	if(system("read var1") != -1)	err("system error!!\n");
+}
+
 int main(int argc, char **argv)
 {
 	int targetCount;
@@ -886,23 +905,37 @@ int main(int argc, char **argv)
 	NormalizeEdgeWeight();
 
 	begin = clock();
-
+	
 	QueryProcessing(argv[3]);
 	targetCount = RecalProbability();
+
+//	printf("target number : %d\n", targetCount);
+//	printf("target feature : %s\n", targetFeature);
+
+//	if(system("read var1") == -1) err("system error!\n");
+//	puts("targets are : \n");
+//	for(int i = 0 ; i < targetCount ; i++){
+//		printf("%d ", targetUsers[i]);
+//	}
+//	puts("\n");
+//	if(system("read var1") == -1) err("system error!\n");
+
 	ReNormalizeEdgeProbability();
 	DiffusionTime();
 
+//	printf("\ncalcuate minimum probability:\n");
+//	CalMinPro();
 //	printf("\nPrint Graph Information : \n");
 //	printGraph();
 
-	printf("Run Baseline Algorithm!\n");
-	Baseline(targetCount);
+//	printf("Run Baseline Algorithm!\n");
+//	Baseline(targetCount);
 
 //	printf("Run LD Tree Algorithm!\n");
 //	LD_Tree(targetCount);
 
-//	printf("Run Community-based Algorithm\n");
-//	Community_based(targetCount);
+	printf("Run Community-based Algorithm\n");
+	Community_based(targetCount);
 
 	end = clock();
 	time_spent = (double)(end-begin) / CLOCKS_PER_SEC;
