@@ -1,3 +1,5 @@
+// solve the "Diffusion Minimization on Specific Targets problem"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -14,7 +16,7 @@
 void ReadGraph(const char * const file_edge, const char * const directory)
 {
 	/* read the social graph with vertices and the relationship between vertices */
-	FILE *fp = fopen(file_edge, "r");
+	FILE *fp = read_file(file_edge);
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read;
@@ -39,14 +41,11 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 	struct stat statbuf;
 	int length = 0;
 	char *filename = NULL;
-//	char *filename = NULL, *token1 = NULL, *token2 = NULL;
 	const char *dir = directory;
 
-	if((dp = opendir(dir)) == NULL)
-		err("cannot open directory!\n");
+	if((dp = opendir(dir)) == NULL)	err("cannot open directory!\n");
 	
-	if(chdir(dir) == -1)
-		err("invalid directory\n");
+	if(chdir(dir) == -1)	err("invalid directory\n");
 	
 	printf("Read feat and featnames file...\n");
 	communityNum = 0;
@@ -60,7 +59,7 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 			strncpy(filename, entry->d_name, length-5);
 			filename[length-5] = '\0';
 			firstline = true;
-			FILE *fp2 = fopen(entry->d_name, "r");
+			FILE *fp2 = read_file(entry->d_name);
 			while((read = getline(&line, &len, fp2)) != -1){
 				if(firstline){
 					firstline = false;
@@ -78,6 +77,7 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 		}
 	}
 
+//	char *filename = NULL, *token1 = NULL, *token2 = NULL;
 /*
 	int comTmp = 0;
 	char *token1 = NULL, *token2 = NULL;
@@ -230,7 +230,6 @@ void NormalizeEdgeWeight(void)
 		if(Users[i] != NULL && Users[i]->prev != NULL){
 			current = Users[i]->prev;
 			total += current->weight;
-//			printf("weight is %f\n", current->weight);
 			while(current->next != NULL){
 				current = current->next;
 				total += current->weight;
@@ -250,7 +249,6 @@ void NormalizeEdgeWeight(void)
 //				printf("node %d to node %d probability is %f\n", current->ID, i, current->probability);
 			}
 		}
-
 		total = 0.0;
 	}
 
@@ -554,13 +552,11 @@ int RecalProbability(void)
 		targetNum++;
 		label = strtok(NULL, " ");
 	}
-//	printf("targetNum is %d\n", targetNum);
+
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL){
-//			printf("user %d : \n", i);
 			intersections = 0;
 			unions = 0;
-//			targetUsers[i] = -1;
 			j = 0;
 			if(Users[i]->label != NULL){
 				while(Users[i]->feature[j] != NULL){
@@ -606,12 +602,8 @@ int RecalProbability(void)
 	}
 
 	if(targetCount == 0)
-		puts("Targets are not found !!\n");
-//		err("Targets are not found !!\n");
+		err("Targets are not found !!\n");
 
-//	printf("target number is : %d\n", targetCount);
-//	if(system("read var1") == -1)	err("system error!\n");
-	
 	return targetCount;
 }
 
@@ -910,15 +902,10 @@ int main(int argc, char **argv)
 	targetCount = RecalProbability();
 
 //	printf("target number : %d\n", targetCount);
-//	printf("target feature : %s\n", targetFeature);
-
-//	if(system("read var1") == -1) err("system error!\n");
 //	puts("targets are : \n");
 //	for(int i = 0 ; i < targetCount ; i++){
 //		printf("%d ", targetUsers[i]);
 //	}
-//	puts("\n");
-//	if(system("read var1") == -1) err("system error!\n");
 
 	ReNormalizeEdgeProbability();
 	DiffusionTime();
@@ -928,14 +915,18 @@ int main(int argc, char **argv)
 //	printf("\nPrint Graph Information : \n");
 //	printGraph();
 
-//	printf("Run Baseline Algorithm!\n");
-//	Baseline(targetCount);
-
-//	printf("Run LD Tree Algorithm!\n");
-//	LD_Tree(targetCount);
-
-	printf("Run Community-based Algorithm\n");
-	Community_based(targetCount);
+	#ifdef BASE
+		printf("Run Baseline Algorithm!\n");
+		Baseline(targetCount);
+	#endif
+	#ifdef LDT
+		printf("Run LD Tree Algorithm!\n");
+		LD_Tree(targetCount);
+	#endif
+	#ifdef COM
+		printf("Run Community-based Algorithm\n");
+		Community_based(targetCount);
+	#endif
 
 	end = clock();
 	time_spent = (double)(end-begin) / CLOCKS_PER_SEC;

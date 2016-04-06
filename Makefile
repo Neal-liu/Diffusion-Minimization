@@ -1,17 +1,24 @@
 CFLAGS = -Wall -Werror -std=gnu99 -O3 -g
 CC = gcc
 TOPK = 1
-BIN = diffusion
+BIN = diffusion1
+TARGET = diffusion
 
 #LDFLAGS = `pkg-config --libs --cflags libpng`
 #PNGLIBS := $(shell pkg-config libpng --libs)
 
 all: $(BIN)
 
-diffusion: diffusionMin.c LDTree.c community.c
-	$(CC) $(CFLAGS) -o $@ $^
+diffusion1: diffusionMin.c LDTree.c community.c
+	$(CC) $(CFLAGS) -DBASE -o $(TARGET) $^
 
-synthetic:
+diffusion2: diffusionMin.c LDTree.c community.c
+	$(CC) $(CFLAGS) -DLDT -o $(TARGET) $^
+
+diffusion3: diffusionMin.c LDTree.c community.c
+	$(CC) $(CFLAGS) -DCOM -o $(TARGET) $^
+
+syntheticsmall:
 	./diffusion ./syntheticData/small/synthetic.edge ~/graph-tool/syntheticData/small 1
 
 synthetic2:

@@ -16,3 +16,13 @@ FILE *write_file(const char * const filename){
 
 	return fp;
 }
+
+static inline
+FILE *read_file(const char * const filename){
+	if(filename == NULL) return NULL;
+
+	FILE *fp = fopen(filename, "r");
+	if(fp == NULL)	return NULL;
+
+	return fp;
+}

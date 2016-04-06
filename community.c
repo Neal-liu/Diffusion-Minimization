@@ -214,7 +214,7 @@ struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int c
 				}
 			}
 		}
-//		printf("\ncentral node is %d : %lf\n", maxTimeID[central], diffusionTime);
+		printf("\ncentral node is %d : %lf\n", maxTimeID[central], diffusionTime);
 		topk++;
 
 		// Just Do once time.
@@ -279,8 +279,10 @@ void CalculateCentral(void)
 		printf("community %d : %d\n", i, eachComNumber[i]);
 	}
 
-	for(i = 0 ; i < communityNum ; i++)
+	for(i = 0 ; i < communityNum ; i++){
+		printf("calculate community : %d central node\n", i);
 		BruteForce(comMember[i], eachComNumber[i], i, -1);
+	}
 
 }
 
