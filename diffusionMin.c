@@ -510,18 +510,20 @@ void StoreFeaturesName(char *file_featnames)
 		featuresName[count] = malloc((strlen(token)+1) * sizeof(char));
 		strcpy(featuresName[count], token);
 		featuresName[count][strlen(token)] = '\0';
-		printf("\n%zu %s\n", strlen(token), featuresName[count]);
-		printf("store feature : %s \n", featuresName[count]);
+//		printf("\n%zu %s\n", strlen(token), featuresName[count]);
+//		printf("store feature : %s \n", featuresName[count]);
 
 		if(!allFeatures){
-			allFeatures = malloc((strlen(token)+1) * sizeof(char));
+			allFeatures = malloc((strlen(token)+2) * sizeof(char));
 			strcpy(allFeatures, token);
 			allFeatures[strlen(token)] = ' ';
+			allFeatures[strlen(token)+1] = '\0';
 		}
 		else{
+			strcat(token, " ");
 			allFeatures = realloc(allFeatures, (strlen(allFeatures)+strlen(token)+1) * sizeof(char));
 			strcat(allFeatures, token);
-			allFeatures[strlen(allFeatures)] = ' ';
+			allFeatures[strlen(allFeatures)] = '\0';
 		}
 //		printf("all Features : %s\n", allFeatures);
 		count++;
