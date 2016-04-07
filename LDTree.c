@@ -152,9 +152,6 @@ int ChooseCandidates(int targetCount, int *candidates)
 
 	memset(candidates, -1, totalvertices * sizeof(int));
 	memcpy(candidates, targetUsers, targetCount * sizeof(int));
-//	for(i = 0 ; i < totalvertices ; i++){
-//		printf("%d ", candidates[i]);
-//	}
 
 	candidatesNum = targetCount;
 	printf("\n");
@@ -254,7 +251,6 @@ bool MeetSeed(int targetID, int candidateID, int *seedSet)
 /* Check the candidate go through the target will meet seeds or not. */
 bool isBlock(int targetID, int candidateID, int *seedSet)
 {
-
 //	printf("\ncandidate %d \n", candidateID);
 
 	bool match = MeetSeed(targetID, candidateID, seedSet);
@@ -264,7 +260,6 @@ bool isBlock(int targetID, int candidateID, int *seedSet)
 	}
 	else
 		return false;
-
 }
 
 void FindSeeds(int targetCount, int *candidates, int candidatesNum)
@@ -375,6 +370,7 @@ void LD_Tree(int targetCount)
 {
 	int i = 0;
 //    double threshold = 1.0;
+//	should be setup by (k-1) * (1/Pmin) * (1/Wmin)
 	double threshold = (seedNumber-1)*(1/0.000084)*1;
 	int *candidates = malloc(totalvertices * sizeof(int));
 	int candidatesNum;
@@ -396,12 +392,11 @@ void LD_Tree(int targetCount)
 	printf("candidatesNum is : %d\n", candidatesNum);
 	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
 	printf("candidatesNum is : %d\n", candidatesNum);
-	if(system("read var1") != -1)	err("system error!!\n");
-	return;
+
 	/* union the LD tree as the candidates */
-//	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
-//	if(candidatesNum == 0)
-//		candidatesNum = ChooseCandidates(targetCount, candidates);
+	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
+	if(candidatesNum == 0)
+		candidatesNum = ChooseCandidates(targetCount, candidates);
 
 	printf("\nnumbers of candidates : %d\n", candidatesNum);
 	for(i = 0 ; i < totalvertices ; i++){

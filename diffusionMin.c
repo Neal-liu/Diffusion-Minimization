@@ -146,7 +146,7 @@ void StoreRelationship(char *relation)
 	int i = 0, node1 = 0, node2 = 0;
 
 	p = strtok(relation, " ");
-	while(p != NULL){
+	while(p != NULL && i < 3){
 		token[i++] = p;
 		p = strtok(NULL, " ");
 	}
@@ -454,13 +454,14 @@ void QueryProcessing(char *number)
 	seedNumber = atoi(number);
 
 //	target_labels = "startup 0";
-	target_labels = "google";
+//	target_labels = "google";
 //	target_labels = "google youtube";
-//	target_labels = "basketball curry";
+	target_labels = "basketball";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
-	targetFeature = malloc(strlen(target_labels) * sizeof(char));
+	targetFeature = malloc((strlen(target_labels)+1) * sizeof(char));
 	strncpy(targetFeature, target_labels, strlen(target_labels));
+	targetFeature[strlen(target_labels)] = '\0';
 	printf("target Features are : %s", targetFeature);
 
 	printf("\n\n");
@@ -488,13 +489,13 @@ void StoreFeaturesName(char *file_featnames)
 {
 	strncat(file_featnames, ".featnames", 10);
 
-	FILE *fp = fopen(file_featnames, "r");
+	FILE *fp = read_file(file_featnames);
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read;
 	int count = 0;
 
-	free(featuresName);
+//	free(featuresName);
 	featuresName = malloc((totalfeatures+1) * sizeof(char *));
 
 	while((read = getline(&line, &len, fp)) != -1){
@@ -509,8 +510,8 @@ void StoreFeaturesName(char *file_featnames)
 		featuresName[count] = malloc((strlen(token)+1) * sizeof(char));
 		strcpy(featuresName[count], token);
 		featuresName[count][strlen(token)] = '\0';
-//		printf("\n%zu %s\n", strlen(token), featuresName[count]);
-//		printf("store feature : %s \n", featuresName[count]);
+		printf("\n%zu %s\n", strlen(token), featuresName[count]);
+		printf("store feature : %s \n", featuresName[count]);
 
 		if(!allFeatures){
 			allFeatures = malloc((strlen(token)+1) * sizeof(char));
