@@ -520,10 +520,10 @@ void StoreFeaturesName(char *file_featnames)
 			allFeatures[strlen(token)+1] = '\0';
 		}
 		else{
-			strcat(token, " ");
-			allFeatures = realloc(allFeatures, (strlen(allFeatures)+strlen(token)+1) * sizeof(char));
+			allFeatures = realloc(allFeatures, (strlen(allFeatures)+strlen(token)+2) * sizeof(char));
+
 			strcat(allFeatures, token);
-			allFeatures[strlen(allFeatures)] = '\0';
+			strcat(allFeatures, " ");
 		}
 //		printf("all Features : %s\n", allFeatures);
 		count++;

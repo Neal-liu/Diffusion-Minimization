@@ -4,9 +4,6 @@ TOPK = 1
 BIN = diffusion1
 TARGET = diffusion
 
-#LDFLAGS = `pkg-config --libs --cflags libpng`
-#PNGLIBS := $(shell pkg-config libpng --libs)
-
 all: $(BIN)
 
 diffusion1: diffusionMin.c LDTree.c community.c
@@ -19,20 +16,20 @@ diffusion3: diffusionMin.c LDTree.c community.c
 	$(CC) $(CFLAGS) -DCOM -o $(TARGET) $^
 
 syntheticsmall:
-	./diffusion ./syntheticData/small/synthetic.edge ~/graph-tool/syntheticData/small 1
+	./diffusion ./syntheticData/small/synthetic.edge ./syntheticData/small 1
 
 synthetic2:
-	./diffusion ./syntheticData/synthetic2.edge ~/graph-tool/syntheticData 1
+	./diffusion ./syntheticData/synthetic2.edge ./syntheticData 1
 
 twitter:
-	./diffusion ./realData/twitter/twitterWithEdge.edge ~/graph-tool/realData/twitter 10 ;
+	./diffusion ./realData/twitter/twitterWithEdge.edge ./realData/twitter 10 ;
 #	for i in 1 2 3 4 5 10 20 30 40 50 60 80 100 150 200 300 400 500 ; do \
 		./diffusion ./realData/twitter/twitterWithEdge.edge ~/graph-tool/realData/twitter $$i ; \
 		mv realData/result experiements/twitter/baseline/youtube/$$i ; \
 	done
 	
 facebook:
-	./diffusion ./realData/facebook/facebookWithEdge.edge ~/graph-tool/realData/facebook 10 ;
+	./diffusion ./realData/facebook/facebookWithEdge.edge ./realData/facebook 10 ;
 #	for j in 1 ; do \
 		for i in 300 400 500 ; do \
 			./diffusion ./realData/facebook/facebookWithEdge.edge ~/graph-tool/realData/facebook $$i ; \
@@ -41,7 +38,7 @@ facebook:
 	done
 	
 gplus:
-	./diffusion ./realData/gplus/gplus/gplusWithEdge.edge ~/graph-tool/realData/gplus/gplus 1
+	./diffusion ./realData/gplus/gplus/gplusWithEdge.edge ./realData/gplus/gplus 1
 #	for i in 1 2 3 4 5 10 20 30 40 50 60 80 100 ; do
 #	for i in 1 ; do \
 #		./diffusion ./realData/gplus/gplus/gplusWithEdge.edge ~/graph-tool/realData/gplus/gplus $$i ; \
@@ -50,12 +47,12 @@ gplus:
 
 epinions:
 		for i in 20 40 60 80 100 150 200; do \
-			./diffusion ./realData/epinions/epinionsWithEdge.edge ~/graph-tool/realData/epinions $$i ; \
+			./diffusion ./realData/epinions/epinionsWithEdge.edge ./realData/epinions $$i ; \
 			mv realData/result experiements/epinions/community/google/$$i ; \
 		done
 
 wiki:
-	./diffusion ./realData/wikiVote/wikiVoteWithEdge.edge ~/graph-tool/realData/wikiVote 10 ;
+	./diffusion ./realData/wikiVote/wikiVoteWithEdge.edge ./realData/wikiVote 10 ;
 #	for j in 10 20 30 40 50 60 80 100 150 200 ; do \
 		./diffusion ./realData/wikiVote/wikiVoteWithEdge.edge ~/graph-tool/realData/wikiVote $$j ; \
 		mv realData/result experiements/wikiVote/communtiy/youtube/$$j ; \
