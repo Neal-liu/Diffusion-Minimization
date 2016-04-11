@@ -50,6 +50,7 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 	printf("Read feat and featnames file...\n");
 	communityNum = 0;
 
+	bool exists = false;
 	while((entry = readdir(dp)) != NULL){
 		lstat(entry->d_name,&statbuf);
 		length = strlen(entry->d_name);
@@ -59,6 +60,7 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 			strncpy(filename, entry->d_name, length-5);
 			filename[length-5] = '\0';
 			firstline = true;
+			exists = false;
 			FILE *fp2 = read_file(entry->d_name);
 			while((read = getline(&line, &len, fp2)) != -1){
 				if(firstline){
@@ -69,11 +71,14 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 					continue;
 				}
 				else{
-					StoreFeatures(line);
+					bool test = StoreFeatures(line);
+					if(test)
+						exists = true;
 				}
 			}
 			fclose(fp2);
-			communityNum++;
+			if(exists)
+				communityNum++;
 		}
 	}
 
@@ -286,7 +291,7 @@ void SyncInNeighbor(int u, int v, double time)
 }
 
 /* Store every vertex's feature in their struct. */
-void StoreFeatures(char *features)
+bool StoreFeatures(char *features)
 {
 	int i, count = 0;
 	char *featurestmp = malloc((strlen(features)+1) * sizeof(char));
@@ -295,7 +300,7 @@ void StoreFeatures(char *features)
 	strcpy(featurestmp, features);
 	featurestmp[strlen(features)] = '\0';
 	if(Users[node] == NULL)
-		return;
+		return false;
 	Users[node]->community = communityNum;
 //	printf("node %d community is %d\n", node, Users[node]->community);
 //	printf("node id %d\n", node);
@@ -305,7 +310,7 @@ void StoreFeatures(char *features)
 	}
 	else{
 		printf("duplicate features !!\n");
-		return;
+		return false;
 	}
 
 	free(Users[node]->feature);
@@ -332,7 +337,7 @@ void StoreFeatures(char *features)
 		}
 		printf("\n");
 	*/
-	return;
+	return true;
 }
 
 /* Compute the diffusion time with 1/probability * 1/weight. */
@@ -453,10 +458,10 @@ void QueryProcessing(char *number)
 
 	seedNumber = atoi(number);
 
-//	target_labels = "startup 0";
+	target_labels = "0";
 //	target_labels = "google";
 //	target_labels = "google youtube";
-	target_labels = "basketball";
+//	target_labels = "basketball";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
 	targetFeature = malloc((strlen(target_labels)+1) * sizeof(char));
@@ -563,7 +568,7 @@ int RecalProbability(void)
 			j = 0;
 			if(Users[i]->label != NULL){
 				while(Users[i]->feature[j] != NULL){
-//					printf("%s %d\n", Users[i]->feature[j], j);
+					printf("%s %d\n", Users[i]->feature[j], j);
 					if(CompareFeatures(Users[i]->feature[j])){
 						intersections++;
 						unions++;

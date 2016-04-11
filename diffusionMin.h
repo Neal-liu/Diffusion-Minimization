@@ -95,7 +95,7 @@ void StoreCommunity(char *, int);			// Store each node's community
 void InitializeVertices(int);				// Create an array of struct Vertex pointer, which points to each user
 void StoreRelationship(char *);				// Include "file.edge" to store the users' relationship
 void NormalizeEdgeWeight(void);				// Normalize edge weight with w(u,v)/d(v) as the propagation probability
-void StoreFeatures(char *);					// Store every vertex's feature in their struct
+bool StoreFeatures(char *);					// Store every vertex's feature in their struct
 void SyncOutNeighbor(int ,int, double);
 void SyncInNeighbor(int ,int, double);
 void DiffusionTime(void);					// Compute the diffusion time with 1/probability * 1/weight
