@@ -33,6 +33,7 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 			StoreRelationship(line);
 		}
 	}
+	free(line);
 	puts("	END\n");
 
 	/* read the vertices' feature with XX.feat and XX.featnames files */
@@ -61,6 +62,7 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 			filename[length-5] = '\0';
 			firstline = true;
 			exists = false;
+			line = NULL;
 			FILE *fp2 = read_file(entry->d_name);
 			while((read = getline(&line, &len, fp2)) != -1){
 				if(firstline){
@@ -295,27 +297,28 @@ bool StoreFeatures(char *features)
 {
 	int i, count = 0;
 	char *featurestmp = malloc((strlen(features)+1) * sizeof(char));
-	int node = atoi(features) % totalvertices;
 
-	strcpy(featurestmp, features);
+	strncpy(featurestmp, features, strlen(features));
 	featurestmp[strlen(features)] = '\0';
+	featurestmp = strtok(featurestmp, " ");
+
+	int node = atoi(featurestmp) % totalvertices;
 	if(Users[node] == NULL)
 		return false;
+	
 	Users[node]->community = communityNum;
 //	printf("node %d community is %d\n", node, Users[node]->community);
-//	printf("node id %d\n", node);
+//	printf("Store node %d features\n", node);
 
-	if(Users[node] != NULL || Users[node]->label != NULL){
+	if(Users[node]->label == NULL){
 		Users[node]->label = malloc(totalfeatures * sizeof(int));
+		Users[node]->feature = malloc(totalfeatures * sizeof(char *));
 	}
-	else{
+	else{		// free node's label and features, and realloc again
 		printf("duplicate features !!\n");
 		return false;
 	}
 
-	free(Users[node]->feature);
-	Users[node]->feature = malloc(totalfeatures * sizeof(char *));
-	featurestmp = strtok(featurestmp, " ");
 	for(i = 1 ; i <= totalfeatures ; i++){
 		Users[node]->feature[i-1] = NULL;
 		featurestmp = strtok(NULL, " ");
@@ -323,13 +326,13 @@ bool StoreFeatures(char *features)
 
 		if(Users[node]->label[i-1] == 1){
 			Users[node]->feature[count] = malloc((strlen(featuresName[i-1])+1) * sizeof(char));
-			strcpy(Users[node]->feature[count], featuresName[i-1]);
+			strncpy(Users[node]->feature[count], featuresName[i-1], strlen(featuresName[i-1]));
 			Users[node]->feature[count][strlen(featuresName[i-1])] = '\0';
 //			printf("feature : %s %d\n", Users[node]->feature[count], count);
 			count++;
 		}
 	}
-
+	
 	/*  // Print each user's feature.
 		printf("Users %d feature : \n\t", node);
 		for(i = 0 ; i < totalfeatures ; i++){
@@ -478,7 +481,7 @@ bool CompareFeatures(char *label)
 {
 	char *token = NULL;
 	char *tmp = malloc((strlen(targetFeature)+1) * sizeof(char));
-	strcpy(tmp, targetFeature);
+	strncpy(tmp, targetFeature, strlen(targetFeature));
 	tmp[strlen(targetFeature)] = '\0';
 
 	while((token = strtok_r(tmp, " ", &tmp)) != NULL){
@@ -486,31 +489,37 @@ bool CompareFeatures(char *label)
 			return true;
 		}
 	}
+
 	return false;
 }
 
 /* The FeaturesName array is corrensponding to each "file.featnames" */
 void StoreFeaturesName(char *file_featnames)
 {
-	strncat(file_featnames, ".featnames", 10);
+	file_featnames = realloc(file_featnames, (strlen(file_featnames)+11) * sizeof(char));
+	strcat(file_featnames, ".featnames");
 
 	FILE *fp = read_file(file_featnames);
-	char *line = NULL;
-	size_t len = 0;
+	char *line1 = NULL;
+	size_t len1 = 0;
 	ssize_t read;
 	int count = 0;
 
-//	free(featuresName);
-	featuresName = malloc((totalfeatures+1) * sizeof(char *));
+	if(featuresName)
+		free(featuresName);
+	featuresName = malloc((totalfeatures) * sizeof(char *));
 
-	while((read = getline(&line, &len, fp)) != -1){
-		char *token = strtok(line, " ");
+	while((read = getline(&line1, &len1, fp)) != -1){
+
+		char *token = strtok(line1, " ");
 		if(token != NULL)
 			token = strtok(NULL, "\n");
 
 //		printf("token : %s %d\n", token, count);
-		if(token == NULL)
-			token = "NULL";
+		if(token == NULL){
+			token = malloc(5 * sizeof(char));
+			strcpy(token, "NULL");
+		}
 
 		featuresName[count] = malloc((strlen(token)+1) * sizeof(char));
 		strcpy(featuresName[count], token);
@@ -530,10 +539,15 @@ void StoreFeaturesName(char *file_featnames)
 			strcat(allFeatures, token);
 			strcat(allFeatures, " ");
 		}
+
 //		printf("all Features : %s\n", allFeatures);
 		count++;
+
 	}
 
+	free(line1);
+	fclose(fp);
+	
 	return;
 }
 
@@ -550,11 +564,12 @@ int RecalProbability(void)
 	printf("Re calculate edge probability... \n");
 
 	targetUsers = malloc(totalvertices * sizeof(int));
-	memset(targetUsers, -1, totalvertices * sizeof(int));
+	for(int i = 0 ; i < totalvertices ; i++)
+		targetUsers[i] = -1;
 
 	char *tmp = malloc((strlen(targetFeature)+1) * sizeof(char));
-	strcpy(tmp, targetFeature);
-	tmp[strlen(targetFeature)] = '\0';
+	strncpy(tmp, targetFeature, strlen(targetFeature)*sizeof(char));
+//	tmp[strlen(targetFeature)] = '\0';
 	char *label = strtok(tmp, " ");				// calculate the total target features' number
 	while(label != NULL){
 		targetNum++;
@@ -563,6 +578,7 @@ int RecalProbability(void)
 
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL){
+			printf("Test user : %d\n", i);
 			intersections = 0;
 			unions = 0;
 			j = 0;
@@ -578,7 +594,6 @@ int RecalProbability(void)
 					j++;
 				}
 			}
-
 			/* if user's intersections is included whole query features, the user will be target. */
 			if(intersections == targetNum){
 				targetUsers[targetCount++] = i;
@@ -594,7 +609,10 @@ int RecalProbability(void)
 //					printf("No need to update !\n");
 				}
 
-				current = Users[i]->next;
+				if(Users[i]->next)
+					current = Users[i]->next;
+				else
+					current = NULL;
 				while(current != NULL && voluntary){
 					printf("Previous : user %d to %d: %f\n", i, current->ID, current->probability);
 					/* 1*propagation probability + self sontaniously * propagation probability */
