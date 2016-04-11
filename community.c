@@ -138,6 +138,69 @@ bool isIncludeCom(int node, int *comMembers, int number)
 	return false;
 }
 
+/* Test if all members in community is already visited. */
+bool isVisitAllCom(bool *sptSet, int *comMembers, int number)
+{
+	for(int i = 0 ; i < number ; i++){
+		if(sptSet[comMembers[i]] == false)
+			return false;
+	}
+	return true;
+}
+
+double *FindMTPwithCom(int root, double *dist, int *comMembers, int number)
+{
+	bool *sptSet = malloc(totalvertices * sizeof(bool));		// shortest path tree Set
+	int *prev = malloc(totalvertices * sizeof(int));			// the previous node
+	int i, src, count;
+	int min_index;
+	struct Neighbor *current = NULL;
+
+	src = root;
+
+	for(i = 0 ; i < totalvertices ; i++){
+		dist[i] = DBL_MAX;
+		prev[i] = -1;
+		sptSet[i] = false;
+	}
+
+	dist[src] = 0;		// Distance of source vertex from itself is 0
+
+	for(count = 0 ; count < totalvertices-1 ; count++){
+
+		/* Pick the minimum distance from the set of vertices not yet processed. */
+		min_index = minDistance(dist, sptSet);
+		if(min_index == -1)
+			break;
+		sptSet[min_index] = true;
+
+		/* Update dist value of the adjacent vertices of the picked vertex. */
+		if(Users[min_index] != NULL && Users[min_index]->prev != NULL){
+			current = Users[min_index]->prev;
+			if(!sptSet[current->ID] && current->time && dist[min_index]!=DBL_MAX && (dist[min_index]+current->time < dist[current->ID]) ){
+				dist[current->ID] = dist[min_index]+current->time;
+				prev[current->ID] = min_index;
+			}
+			while(current->next != NULL){
+				current = current->next;
+				if(!sptSet[current->ID] && current->time && dist[min_index]!=DBL_MAX && (dist[min_index]+current->time < dist[current->ID]) ){
+					dist[current->ID] = dist[min_index]+current->time;
+					prev[current->ID] = min_index;
+				}
+			}
+			// Test if all members in Community is already visited.
+//			if(count > number){
+//				if(isVisitAllCom(sptSet, comMembers, number))
+//					break;
+//			}
+		}
+	}
+
+	free(sptSet);
+	free(prev);
+	return dist;
+}
+
 /* Find the central node from this community with brute force algorithm. */
 struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int comIndex2)
 {
@@ -164,12 +227,13 @@ struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int c
 		seedSet[i] = -1;
 
 	while(topk < 0 || topk > 0){
-		printf("Start calculating central node !\n");
+		printf("Start calculating %d seed !\n", seedCount);
 		InitializeEachReduce(eachReduce, number);
 		best = true;
 
 		for(int i = 0 ; i < number ; i++){
-			distToTargets[i] = FindMTP(comMembers[i], distToTargets[i]);
+//			distToTargets[i] = FindMTP(comMembers[i], distToTargets[i]);
+			distToTargets[i] = FindMTPwithCom(comMembers[i], distToTargets[i], comMembers, number);
 			count = 0;
 			for(int j = 0 ; j < totalvertices ; j++){
 				if(Users[j] != NULL && isIncludeCom(Users[j]->ID, comMembers, number)){
@@ -520,7 +584,8 @@ void UpdateCommunities(int communityNum, struct Community_Merge *current)
 		average = Communities[i]->weight/Communities[i]->degree;
 		count = 0;
 		printf("%d : average is %lf\n", i, average);
-		memset(Communities[i]->closely, -1, communityNum * sizeof(int));
+//		memset(Communities[i]->closely, -1, communityNum * sizeof(int));
+		memset(Communities[i]->closely, -1, communityNum);
 		while(merged != NULL){
 			if(!Communities[merged->ID]->merged){
 				tmp = merged->weight/merged->degree;
@@ -765,7 +830,7 @@ void Community_based(int targetCount)
 	InitialCommunities();
 	Closely();
 	CalculateCentral();
-	
+
 	#ifdef COM
 		begin = clock();
 	#endif
