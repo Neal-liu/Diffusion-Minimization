@@ -52,11 +52,13 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 	communityNum = 0;
 
 	bool exists = false;
+	featuresName = NULL;				// initialize `featuresName`
 	while((entry = readdir(dp)) != NULL){
 		lstat(entry->d_name,&statbuf);
 		length = strlen(entry->d_name);
 
 		if(strcmp(&entry->d_name[length-5], ".feat") == 0){  		// get the file with XX.feat ending
+//			printf("read file : %s\n", entry->d_name);
 			filename = malloc((length-4) * sizeof(char));
 			strncpy(filename, entry->d_name, length-5);
 			filename[length-5] = '\0';
@@ -67,6 +69,11 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 			while((read = getline(&line, &len, fp2)) != -1){
 				if(firstline){
 					firstline = false;
+					if(featuresName){
+						for(int i = 0 ; i < totalfeatures ; i++)
+							free(featuresName[i]);
+						free(featuresName);
+					}
 					totalfeatures = atoi(line);
 //					printf("total features number is %d\n", totalfeatures);
 					StoreFeaturesName(filename);				// read XX.featnames to store each node's feature
@@ -178,6 +185,8 @@ void StoreRelationship(char *relation)
 	if(!Users[node1]){
 		Users[node1] = malloc(sizeof(struct Vertex));
 		Users[node1]->ID = node1;
+		Users[node1]->label = NULL;
+		Users[node1]->feature = NULL;
 		Users[node1]->community = -1;
 		Users[node1]->prev = NULL;
 		Users[node1]->next = NULL;
@@ -185,6 +194,8 @@ void StoreRelationship(char *relation)
 	if(!Users[node2]){
 		Users[node2] = malloc(sizeof(struct Vertex));
 		Users[node2]->ID = node2;
+		Users[node2]->label = NULL;
+		Users[node2]->feature = NULL;
 		Users[node2]->community = -1;
 		Users[node2]->prev = NULL;
 		Users[node2]->next = NULL;
@@ -305,34 +316,34 @@ bool StoreFeatures(char *features)
 	int node = atoi(featurestmp) % totalvertices;
 	if(Users[node] == NULL)
 		return false;
-	
-	Users[node]->community = communityNum;
-//	printf("node %d community is %d\n", node, Users[node]->community);
-//	printf("Store node %d features\n", node);
 
-	if(Users[node]->label == NULL){
+	if(Users[node]->label == NULL && Users[node]->feature == NULL){
 		Users[node]->label = malloc(totalfeatures * sizeof(int));
 		Users[node]->feature = malloc(totalfeatures * sizeof(char *));
+		for(int i = 0 ; i < totalfeatures ; i++)
+			Users[node]->feature[i] = NULL;
 	}
-	else{		// free node's label and features, and realloc again
-		printf("duplicate features !!\n");
+	else{
+//		printf("duplicate features !!\n");
 		return false;
 	}
 
+	Users[node]->community = communityNum;
+
 	for(i = 1 ; i <= totalfeatures ; i++){
-		Users[node]->feature[i-1] = NULL;
 		featurestmp = strtok(NULL, " ");
-		Users[node]->label[i-1] = atoi(featurestmp);
+		if(featurestmp == NULL)
+			break;
+		else
+			Users[node]->label[i-1] = atoi(featurestmp);
 
 		if(Users[node]->label[i-1] == 1){
 			Users[node]->feature[count] = malloc((strlen(featuresName[i-1])+1) * sizeof(char));
 			strncpy(Users[node]->feature[count], featuresName[i-1], strlen(featuresName[i-1]));
 			Users[node]->feature[count][strlen(featuresName[i-1])] = '\0';
-//			printf("feature : %s %d\n", Users[node]->feature[count], count);
 			count++;
 		}
 	}
-	
 	/*  // Print each user's feature.
 		printf("Users %d feature : \n\t", node);
 		for(i = 0 ; i < totalfeatures ; i++){
@@ -461,8 +472,8 @@ void QueryProcessing(char *number)
 
 	seedNumber = atoi(number);
 
-	target_labels = "0";
-//	target_labels = "google";
+//	target_labels = "0";
+	target_labels = "google";
 //	target_labels = "google youtube";
 //	target_labels = "basketball";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
@@ -499,14 +510,13 @@ void StoreFeaturesName(char *file_featnames)
 	file_featnames = realloc(file_featnames, (strlen(file_featnames)+11) * sizeof(char));
 	strcat(file_featnames, ".featnames");
 
+	extern char **featuresName;
 	FILE *fp = read_file(file_featnames);
 	char *line1 = NULL;
 	size_t len1 = 0;
 	ssize_t read;
 	int count = 0;
 
-	if(featuresName)
-		free(featuresName);
 	featuresName = malloc((totalfeatures) * sizeof(char *));
 
 	while((read = getline(&line1, &len1, fp)) != -1){
@@ -518,18 +528,19 @@ void StoreFeaturesName(char *file_featnames)
 //		printf("token : %s %d\n", token, count);
 		if(token == NULL){
 			token = malloc(5 * sizeof(char));
-			strcpy(token, "NULL");
+			strncpy(token, "NULL", 4);
+			token[4] = '\0';
 		}
 
 		featuresName[count] = malloc((strlen(token)+1) * sizeof(char));
-		strcpy(featuresName[count], token);
+		strncpy(featuresName[count], token, strlen(token));
 		featuresName[count][strlen(token)] = '\0';
 //		printf("\n%zu %s\n", strlen(token), featuresName[count]);
 //		printf("store feature : %s \n", featuresName[count]);
 
 		if(!allFeatures){
 			allFeatures = malloc((strlen(token)+2) * sizeof(char));
-			strcpy(allFeatures, token);
+			strncpy(allFeatures, token, strlen(token));
 			allFeatures[strlen(token)] = ' ';
 			allFeatures[strlen(token)+1] = '\0';
 		}
@@ -582,6 +593,7 @@ int RecalProbability(void)
 			intersections = 0;
 			unions = 0;
 			j = 0;
+//			getchar();
 			if(Users[i]->label != NULL){
 				while(Users[i]->feature[j] != NULL){
 					printf("%s %d\n", Users[i]->feature[j], j);
