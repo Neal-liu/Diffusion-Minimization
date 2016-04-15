@@ -392,9 +392,9 @@ void CommunityMerge(void)
 	struct Community_Merge *current;
 	bool first = true;
 
+	int comNum = communityNum;
 	puts("Access community merged...\n");
-//	if(system("read var1") == -1) err("system pause error!!\n");
-//	while(communityNum > seedNumber){
+//	while(comNum > seedNumber){
 	while(1){
 		// put values in sortRadius and indexRadius array , and SortComRadius in here.
 		double *sortRadius = malloc(communityNum * sizeof(double));
@@ -429,27 +429,46 @@ void CommunityMerge(void)
 				return;
 		}
 		printf("min1 %d min2 %d\n", min1, min2);
-//		if(system("read var1") == -1) err("system error!!\n");
 
 		mergeNumbers = eachComNumber[min1] + eachComNumber[min2];
 		int *mergedMembers = malloc(mergeNumbers * sizeof(int));
 		mergeCount = 0;
 
-		for(i = 0 ; comMember[min1][i] != -1 ; i++)
+		for(i = 0 ; comMember[min1][i] != -1 ; i++){
+			if(mergeCount == mergeNumbers)
+				break;
 			mergedMembers[mergeCount++] = comMember[min1][i];
-		for(i = 0 ; comMember[min2][i] != -1 ; i++)
+		}
+		for(i = 0 ; comMember[min2][i] != -1 ; i++){
+			if(mergeCount == mergeNumbers)
+				break;
 			mergedMembers[mergeCount++] = comMember[min2][i];
-
+		}
+/*
+		puts("Merged member : \n");
+		for(int i = 0 ; i < mergeNumbers ; i++)
+			printf("%d ", mergedMembers[i]);
+		puts("\n");
+		puts("Merged member : \n");
+		for(int i = 0 ; i < mergeCount ; i++)
+			printf("%d ", mergedMembers[i]);
+		puts("\n");
+		printf("merged count : %d\n", mergeCount);
+		printf("merged number : %d\n", mergeNumbers);
+*/
 		info = BruteForce(mergedMembers, mergeNumbers, min1, min2);
-		printf("\nmerge Time : %lf\n", info.radius);
-//		if(system("read var1") == -1) err("system pause error!\n");
+//		puts("test done");
+//		printf("\nmerge Time : %lf\n", info.radius);
+//		if(mergeCount != mergeNumbers)
+//			getchar();
 
 		if(first){
 			first = false;
 			maxRadius = sortRadius[communityNum-1];
 		}
 		// if merged radius <= max R(C), then combined these two communities.
-		if(info.radius <= maxRadius && info.radius != DBL_MAX){
+//		if(info.radius <= maxRadius && info.radius != DBL_MAX){
+		if(1 || info.radius != DBL_MAX){
 			printf("Start merging...\n");
 			Communities[min1]->merged = true;
 			Communities[min2]->merged = true;
@@ -485,6 +504,8 @@ void CommunityMerge(void)
 			}
 
 			// remalloc eachComNumber , add mergedCommunity to "Communities" , update communityNum , remalloc comMember
+			if(info.radius >= maxRadius)
+				comNum--;
 			communityNum++;
 			eachComNumber = realloc(eachComNumber, communityNum * sizeof(int));
 			eachComNumber[communityNum-1] = mergeCount;
@@ -508,6 +529,7 @@ void UpdateCommunities(int communityNum, struct Community_Merge *current)
 	extern struct Community **Communities;
 	int count = 0;
 
+	puts("Update communities structure...");
 	Communities = realloc(Communities, communityNum * sizeof(struct Community *));
 	Communities[communityNum-1] = malloc(sizeof(struct Community));
 	Communities[communityNum-1]->ID = current->ID;
@@ -593,7 +615,7 @@ void UpdateCommunities(int communityNum, struct Community_Merge *current)
 					while(Communities[i]->closely[count] != -1)
 						count++;
 					Communities[i]->closely[count] = merged->ID;
-					printf("\t closely community : %d\n", merged->ID);
+//					printf("\t closely community : %d\n", merged->ID);
 				}
 			}
 			merged = merged->next;
@@ -709,7 +731,6 @@ int *PickSeeds(void)
 			sortRadius[i] = -1;
 		indexRadius[i] = i;
 	}
-
 	if(seedCount >= seedNumber){
 		printf("Need more than %d seeds.\n", seedCount);
 		seedNumber = seedCount;
@@ -737,10 +758,18 @@ int *PickSeeds(void)
 			}
 			// delete original central node from seedSet
 			for(int i = 0 ; i < seedCount ; i++){
-				if(seedSet[i] == current->ID)
+				if(seedSet[i] == current->ID){
 					seedSet[i] = -1;
-				seedCount--;
+					for(int j = i+1 ; seedSet[j] != -1 ; j++){
+						seedSet[j-1] = seedSet[j];
+						seedSet[j] = -1;
+					}
+					break;
+				}
+//					seedSet[i] = -1;
+//				seedCount--;
 			}
+			seedCount--;
 			seedSet[seedCount++] = Communities[current->child[0]]->central;
 			seedSet[seedCount++] = Communities[current->child[1]]->central;
 			Communities[current->child[0]]->merged = false;

@@ -589,14 +589,13 @@ int RecalProbability(void)
 
 	for(i = 0 ; i < totalvertices ; i++){
 		if(Users[i] != NULL){
-			printf("Test user : %d\n", i);
+//			printf("Test user : %d\n", i);
 			intersections = 0;
 			unions = 0;
 			j = 0;
-//			getchar();
 			if(Users[i]->label != NULL){
 				while(Users[i]->feature[j] != NULL){
-					printf("%s %d\n", Users[i]->feature[j], j);
+//					printf("%s %d\n", Users[i]->feature[j], j);
 					if(CompareFeatures(Users[i]->feature[j])){
 						intersections++;
 						unions++;
