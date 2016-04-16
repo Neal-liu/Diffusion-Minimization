@@ -219,6 +219,7 @@ struct Central_Info BruteForce(int *comMembers, int number, int comIndex1, int c
 		targets[i] = DBL_MAX;
 		distToTargets[i] = malloc(totalvertices * sizeof(double));
 		maxTime[i] = -1;
+		maxTimeID[i] = -1;
 		eachReduce[i] = 0;
 		for(int j = 0 ; j < totalvertices ; j++)
 			distToTargets[i][j] = -1;
@@ -756,6 +757,7 @@ int *PickSeeds(void)
 			while(current != NULL && current->ID != Communities[maxRadiusIndex]->ID){
 				current = current->next;
 			}
+
 			// delete original central node from seedSet
 			for(int i = 0 ; i < seedCount ; i++){
 				if(seedSet[i] == current->ID){
@@ -766,12 +768,26 @@ int *PickSeeds(void)
 					}
 					break;
 				}
-//					seedSet[i] = -1;
-//				seedCount--;
 			}
 			seedCount--;
-			seedSet[seedCount++] = Communities[current->child[0]]->central;
-			seedSet[seedCount++] = Communities[current->child[1]]->central;
+
+			// check the children central is in seedSet or not
+			int c1 = Communities[current->child[0]]->central;
+			int c2 = Communities[current->child[1]]->central;
+			int repeat = 0;
+			for(int i = 0 ; i < seedCount ; i++){
+				if(c1 != -1 && c2 != -1 && (seedSet[i] == c1 || seedSet[i] == c2)){
+					seedSet[i] = -1;
+					for(int j = i+1 ; seedSet[j] != -1 ; j++){
+						seedSet[j-1] = seedSet[j];
+						seedSet[j] = -1;
+					}
+					repeat++;
+				}
+			}
+			seedCount -= repeat;
+			seedSet[seedCount++] = c1;
+			seedSet[seedCount++] = c2;
 			Communities[current->child[0]]->merged = false;
 			Communities[current->child[1]]->merged = false;
 			Communities[current->child[0]]->topk = 1;
@@ -782,6 +798,7 @@ int *PickSeeds(void)
 			Communities[maxRadiusIndex]->radius = 0;
 		}
 		else{
+			puts("I'm original community!");
 			// this community maybe pick more than 2 seeds
 			Communities[maxRadiusIndex]->topk += 1;
 			int topk = -(Communities[maxRadiusIndex]->topk);
