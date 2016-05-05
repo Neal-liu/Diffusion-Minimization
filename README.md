@@ -2,13 +2,15 @@
 Diffusion Minimization on Specific Targets in Social Networks
 
 ## Introduction
-  This is my research, and there are three algorithms implements :
+* This is my research, and there are three algorithms implements :
   1. Baseline : implements with greedy.
   2. LDT : improve Baseline, including two pruning mechanisms : 
     - threshold
     - sorted list
   3. Community-based : First research about diffusion minimization by Zongqing et al, INFOCOM 2014.
   
+* Query : k, labels
+
 ## Building and Running
   * build Baseline algorithm
 ```
@@ -34,7 +36,7 @@ After build ELF executable, we have to choose the dataset to run :
   make twitter
   make facebook
   make epinions
-  make wiki-Vote
+  make wiki
 ```
 * run synthetic data (including 1,000 nodes, 5,000 nodes, 10,000 nodes, 40,000 nodes) :
 ```
