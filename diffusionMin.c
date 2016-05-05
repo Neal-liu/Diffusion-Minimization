@@ -92,7 +92,8 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 	}
 
 //	char *filename = NULL, *token1 = NULL, *token2 = NULL;
-/*
+#ifdef SYN
+	communityNum = 0;
 	int comTmp = 0;
 	char *token1 = NULL, *token2 = NULL;
 	// another way to read community
@@ -106,24 +107,25 @@ void ReadGraph(const char * const file_edge, const char * const directory)
 			FILE *fc = fopen(entry->d_name, "r");
 			while((read = getline(&line, &len, fc)) != -1)
 			{
-				printf("%s", line);
-				token1 = strtok(line, "	");
+//				printf("%s", line);
+				token1 = strtok(line, " ");
 				if(*token1 == '#')
 					continue;
 				else{
-					token2 = strtok(NULL, "	");
+					token2 = strtok(NULL, " ");
 					comTmp = atoi(token2);
 					StoreCommunity(token1, comTmp);
 				}
+				communityNum = MAX(communityNum, comTmp);
 			}
-			communityNum = comTmp+1;
 			break;
 		}
 	}
-*/
+	communityNum++;
 	printf("store finished\n");
 	if(chdir("..") == -1)
 		err("invalid directory!\n");
+#endif
 
 	free(filename);
 	closedir(dp);
@@ -140,7 +142,7 @@ void StoreCommunity(char *token1, int token2)
 //	printf("node id : %d\n", node);
 	if(Users[node] != NULL){
 		Users[node]->community = token2;
-		printf("successful store!\n");
+//		printf("successful store!\n");
 	}
 }
 
@@ -328,7 +330,9 @@ bool StoreFeatures(char *features)
 		return false;
 	}
 
-	Users[node]->community = communityNum;
+	#ifndef SYN
+		Users[node]->community = communityNum;
+	#endif
 
 	for(i = 1 ; i <= totalfeatures ; i++){
 		featurestmp = strtok(NULL, " ");
@@ -472,9 +476,9 @@ void QueryProcessing(char *number)
 
 	seedNumber = atoi(number);
 
-//	target_labels = "0";
-	target_labels = "google";
-//	target_labels = "google youtube";
+	target_labels = "0 1";
+//	target_labels = "ff";
+//	target_labels = "google";
 //	target_labels = "basketball";
 	printf("k is %d\nlabels are %s\n", seedNumber, target_labels);
 
@@ -595,7 +599,7 @@ int RecalProbability(void)
 			j = 0;
 			if(Users[i]->label != NULL){
 				while(Users[i]->feature[j] != NULL){
-//					printf("%s %d\n", Users[i]->feature[j], j);
+					printf("%s %d\n", Users[i]->feature[j], j);
 					if(CompareFeatures(Users[i]->feature[j])){
 						intersections++;
 						unions++;
@@ -842,6 +846,7 @@ void Baseline(int targetCount)
 	printf("targets are : \n");
 	for(i = 0 ; i < targetCount ; i++)
 		printf("%d ", targetUsers[i]);
+	printf("\nnumber of targets : %d\n", targetCount);
 	printf("\nseed set are : \n");
 	for(i = 0 ; i < count ; i++)
 		printf("%d ", seedSet[i]);
@@ -938,11 +943,12 @@ int main(int argc, char **argv)
 	QueryProcessing(argv[3]);
 	targetCount = RecalProbability();
 
-//	printf("target number : %d\n", targetCount);
-//	puts("targets are : \n");
-//	for(int i = 0 ; i < targetCount ; i++){
-//		printf("%d ", targetUsers[i]);
-//	}
+	printf("target number : %d\n", targetCount);
+	puts("targets are : \n");
+	for(int i = 0 ; i < targetCount ; i++){
+		printf("%d ", targetUsers[i]);
+	}
+//	getchar();
 
 	ReNormalizeEdgeProbability();
 	DiffusionTime();
