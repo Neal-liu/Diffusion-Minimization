@@ -37,6 +37,16 @@ else
 	exit 1;
 endif
 
+diffusion4: diffusionMin.c LDTree.c optimal.c
+	@echo "make optimal !"
+ifeq ($(COM), no)
+	$(CC) $(CFLAGS) -DOPT -o $(TARGET) $^
+else ifeq ($(COM), yes)
+	$(CC) $(CFLAGS) -DOPT -DSYN -o $(TARGET) $^
+else
+	exit 1;
+endif
+
 syntheticsmall:
 	./diffusion ./syntheticData/small/synthetic.edge ./syntheticData/small 1
 
@@ -128,10 +138,10 @@ wiki:
 	./diffusion ./syntheticData/80000/graphWithEdge.edge ./syntheticData/80000 10 ;
 
 100000:
-	for i in 10 ; do \
-		for j in 1 ; do \
+	for i in 5 ; do \
+		for j in 2 ; do \
 			./diffusion ./syntheticData/100000/graphWithEdge.edge ./syntheticData/100000 $$i ; \
-			mv syntheticData/result experiements/syntheticData/100000/LDT/$$i.$$j ; \
+			mv syntheticData/result experiements/syntheticData/100000/baseline/$$i.$$j ; \
 		done \
 	done
 
