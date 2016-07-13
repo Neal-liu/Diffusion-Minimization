@@ -122,6 +122,8 @@ void UpdateCommunities(int, struct Community_Merge *);
 void UpdatecomMember(int *, int);
 void DeleteChildUpdate(struct Community_Merge *);
 
+void Optimal(int);							// optimal method
+
 char *dataset;								// name of the dataset
 char *directory;							// name of the dataset directory
 int totalvertices;							// numbers of total users

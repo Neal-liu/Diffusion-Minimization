@@ -476,7 +476,7 @@ void QueryProcessing(char *number)
 
 	seedNumber = atoi(number);
 
-	target_labels = "0 1";
+	target_labels = "0";
 //	target_labels = "ff";
 //	target_labels = "google";
 //	target_labels = "basketball";
@@ -969,6 +969,10 @@ int main(int argc, char **argv)
 	#ifdef COM
 		printf("Run Community-based Algorithm\n");
 		Community_based(targetCount);
+	#endif
+	#ifdef OPT
+		printf("Run Optimal\n");
+		Optimal(targetCount);
 	#endif
 
 	end = clock();
