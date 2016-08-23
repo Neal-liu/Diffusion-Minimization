@@ -85,6 +85,9 @@ void FindMTPwithTree(int root, double threshold, int order)
 
 	/* copy the prev[] array to UsersLD array. It will use in block issue. */
 	memcpy(UsersLD[root]->prevPath, prev, totalvertices * sizeof(int));
+//	for(int i = 0 ; i < totalvertices ; i++){
+//		UsersLD[root]->prevPath[i] = prev[i];
+//	}
 
 	// copy the dist[] to BoundDist global pointer
 	BoundDist[order] = dist;
@@ -124,7 +127,9 @@ void FindMTPwithTree(int root, double threshold, int order)
 	*/
 	free(sptSet);
 	free(prev);
+//	free(dist);
 
+	return;
 }
 
 /* Add the node id into candidates, candidates must be unique. */
@@ -358,6 +363,7 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 	printf("targets are : \n");
 	for(i = 0 ; i < targetCount ; i++)
 		printf("%d ", targetUsers[i]);
+	printf("number of targets : %d\n", targetCount);
 	printf("\nseed set are : \n");
 	for(i = 0 ; i < count ; i++)
 		printf("%d ", seedSet[i]);
@@ -369,18 +375,19 @@ void FindSeeds(int targetCount, int *candidates, int candidatesNum)
 void LD_Tree(int targetCount)
 {
 	int i = 0;
-//    double threshold = 1.0;
+    double threshold = 300;
 //	should be setup by (k-1) * (1/Pmin) * (1/Wmin)
-	double threshold = (seedNumber-1)*(1/0.000084)*1;
+//	double threshold = (seedNumber-1)*(1/0.000084)*1;
 	int *candidates = malloc(totalvertices * sizeof(int));
 	int candidatesNum;
 
 	/* initialize vertex with local diffusion tree */
 	UsersLD = malloc(totalvertices * sizeof(struct VertexLD *));
 	BoundDist = malloc(targetCount * sizeof(double *));
-
+	printf("targetCount : %d\n", targetCount);
 	while(targetUsers[i] != -1){
-		printf("target : %d\n", targetUsers[i]);
+//		printf("i : %d\n", i);
+//		printf("target : %d\n", targetUsers[i]);
 		BoundDist[i] = malloc(totalvertices * sizeof(double));
 		FindMTPwithTree(targetUsers[i], threshold, i);
 		i++;
@@ -388,10 +395,11 @@ void LD_Tree(int targetCount)
 
 	printf("threshold is : %lf\n", threshold);
 	printf("target number is : %d\n", targetCount);
-	candidatesNum = ChooseCandidates(targetCount, candidates);
-	printf("candidatesNum is : %d\n", candidatesNum);
-	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
-	printf("candidatesNum is : %d\n", candidatesNum);
+//	candidatesNum = ChooseCandidates(targetCount, candidates);
+//	printf("candidatesNum is : %d\n", candidatesNum);
+//	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);
+//	printf("candidatesNum is : %d\n", candidatesNum);
+//	getchar();
 
 	/* union the LD tree as the candidates */
 	candidatesNum = ChooseCandidatesWithSL(targetCount, candidates);

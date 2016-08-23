@@ -22,7 +22,7 @@ void InitialCommunities(void)
 		Communities[i]->degree = 0;
 		Communities[i]->central = -1;
 		Communities[i]->radius = 0.0;
-		Communities[i]->topk = 0;
+		Communities[i]->topk = 1;
 		Communities[i]->closely = malloc(communityNum * sizeof(int));
 		for(j = 0 ; j < communityNum ; j++)
 			Communities[i]->closely[j] = -1;
@@ -53,8 +53,8 @@ void Closely(void)
 					current = current->next;
 					continue;
 				}
-//				printf("welcome %d to %d\n", i, current->ID);
-//				printf("user %d community is %d\n", i, Users[i]->community);
+				printf("welcome %d to %d\n", i, current->ID);
+				printf("user %d community is %d\n", i, Users[i]->community);
 				Communities[Users[i]->community]->weight += current->weight;
 				Communities[Users[i]->community]->degree += 1;
 
@@ -543,7 +543,7 @@ void UpdateCommunities(int communityNum, struct Community_Merge *current)
 		Communities[communityNum-1]->closely[j] = -1;
 	Communities[communityNum-1]->merged = false;
 	Communities[communityNum-1]->parent = true;
-	Communities[communityNum-1]->topk = 0;
+	Communities[communityNum-1]->topk = 1;
 	Communities[communityNum-1]->next = NULL;
 
 	// merged Communtity's neighbors are its children's neighbor (only two)

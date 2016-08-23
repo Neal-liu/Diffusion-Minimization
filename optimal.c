@@ -10,28 +10,52 @@ int *optComb;
 int targetNumber;
 double totalDiffusionT = DBL_MAX;
 
+double **distToTargets;
 
-void getDiffusionT(int *result)
+void initialMTP(void)
 {
 	int i, j;
-	double diffusionTime = 0.0;
 
 	/* create a 2D array distToTargets[eachTarget][eachNode] */
-	double **distToTargets = malloc(targetNumber * sizeof(double *));
-	double *targetsReceive = malloc(targetNumber * sizeof(double));		// the minimum time to arrive each target
+	distToTargets = malloc(targetNumber * sizeof(double *));
+//	double *targetsReceive = malloc(targetNumber * sizeof(double));		// the minimum time to arrive each target
 
 	/*	initialize targets array, distToTargets array, firstRound array, eachReduce array. */
 	for(i = 0 ; i < targetNumber ; i++){
-		targetsReceive[i] = DBL_MAX;
+//		targetsReceive[i] = DBL_MAX;
 		distToTargets[i] = malloc(totalvertices * sizeof(double));
 		for(j = 0 ; j < totalvertices ; j++){
 			distToTargets[i][j] = -1;
 		}
 	}
+	
+	for(int i = 0 ; i < targetNumber ; i++)
+		distToTargets[i] = FindMTP(targetUsers[i], distToTargets[i]);	// calculate the time of each node to the target
+
+
+}
+
+
+void getDiffusionT(int *result)
+{
+	double diffusionTime = 0.0;
+
+	/* create a 2D array distToTargets[eachTarget][eachNode] */
+//	double **distToTargets = malloc(targetNumber * sizeof(double *));
+	double *targetsReceive = malloc(targetNumber * sizeof(double));		// the minimum time to arrive each target
+
+	/*	initialize targets array, distToTargets array, firstRound array, eachReduce array. */
+	for(int i = 0 ; i < targetNumber ; i++){
+		targetsReceive[i] = DBL_MAX;
+//		distToTargets[i] = malloc(totalvertices * sizeof(double));
+//		for(j = 0 ; j < totalvertices ; j++){
+//			distToTargets[i][j] = -1;
+//		}
+	}
 
 	
 	for(int i = 0 ; i < targetNumber ; i++){
-			distToTargets[i] = FindMTP(targetUsers[i], distToTargets[i]);	// calculate the time of each node to the target
+//			distToTargets[i] = FindMTP(targetUsers[i], distToTargets[i]);	// calculate the time of each node to the target
 		for(int j = 0 ; j < seedNumber ; j++){			
 
 //			printf("node %d to node %d : %f\n", result[j], targetUsers[i], distToTargets[i][result[j]]);
@@ -52,9 +76,9 @@ void getDiffusionT(int *result)
 	}
 
 //	getchar();
-	for(i = 0 ; i < targetNumber ; i++)
-		free(distToTargets[i]);
-	free(distToTargets);
+//	for(int i = 0 ; i < targetNumber ; i++)
+//		free(distToTargets[i]);
+//	free(distToTargets);
 	free(targetsReceive);
 }
 
@@ -86,11 +110,9 @@ void Optimal(int targetCount)
 	comb = malloc(seedNumber * sizeof(int));
 	optComb = malloc(seedNumber * sizeof(int));
 
-	listComb(totalvertices, seedNumber, 0, comb);
+	initialMTP();
 
-//	end = clock();
-//	time_spent = (double)(end-begin) / CLOCKS_PER_SEC;
-//	fprintf(f, "execution time : %f\n", time_spent);
+	listComb(totalvertices, seedNumber, 0, comb);
 
 	printf("targets are : \n");
 	for(int i = 0 ; i < targetCount ; i++)

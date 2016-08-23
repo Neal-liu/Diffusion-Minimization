@@ -152,6 +152,8 @@ void InitializeVertices(int number)
 	printf("%d\n", number);
 	totalvertices = number;
 	Users = malloc(number * sizeof(struct Vertex *));
+	for(int i = 0 ; i < number ; i++)
+		Users[i] = NULL;
 }
 
 /* Include file.edge to store the users' relationship. */
@@ -476,7 +478,7 @@ void QueryProcessing(char *number)
 
 	seedNumber = atoi(number);
 
-	target_labels = "0";
+	target_labels = "13";
 //	target_labels = "ff";
 //	target_labels = "google";
 //	target_labels = "basketball";
